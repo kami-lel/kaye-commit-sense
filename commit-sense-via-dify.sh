@@ -23,7 +23,7 @@ environment:
   DIFY_BASE_URL                   optional; overrides the base address
   DIFY_USER                       optional; identifies the author to Dify
   COMMIT_SENSE_SKIP               any non-empty value skips generation"
-  
+
 
 # constants  ###################################################################
 readonly VERSION="0.1.0"
