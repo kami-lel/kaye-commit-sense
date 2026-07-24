@@ -27,7 +27,7 @@ planning so that the implementation and its documentation stay aligned.
 | leading-dash mode dispatch | confirmed |
 | `bin/` placement | dropped — one file needs no directory |
 | `verify-commit-sense-via-dify.sh` name | dropped — folded into `--verify` |
-| `jq` as a dependency | dropped — reply parsed with a hand-rolled extractor |
+| `jq` as a dependency | confirmed — required; see [JSON Handling](#json-handling) |
 
 ## Dify Backend
 
@@ -162,48 +162,34 @@ caller supplies them; the script never synthesizes them itself.
 
 Building the request body and parsing the reply both require correct JSON
 handling — the diff and the reply text can contain quotes, backslashes, and
-newlines that break naive string handling. Neither direction depends on `jq`;
-requiring it was rejected because it directly contradicts the goal of
-zero-friction installation, and it is **not installed by default on Debian**
-(no netinst, server, desktop, or official Docker image ships it) — a
-missing-`jq` failure would hit every contributor on a fresh machine, exactly
-the manual intervention this project exists to eliminate.
+newlines that break naive string handling. This was originally hand-rolled in
+pure Bash to avoid a `jq` dependency, but a hand-rolled UTF-16 surrogate-pair
+decoder (needed because Dify's backend defaults to Flask's `ensure_ascii=True`
+and escapes non-ASCII output as `\uXXXX`, confirmed via
+[langgenius/dify#8056](https://github.com/langgenius/dify/issues/8056), closed
+as not-planned) surfaced a real arithmetic bug during implementation — the
+kind of correctness risk a hand-written JSON layer keeps producing. `jq` is a
+battle-tested JSON parser that eliminates this entire bug class, so the
+dependency decision is reversed: **`jq` is now required.**
 
-- request-body encoding is hand-rolled in pure Bash with parameter
-  expansion — a fixed escaping order for backslashes, quotes, and control
-  characters, applied once to the staged diff before it goes into the `query`
-  field
-- reply parsing is scoped, not general-purpose: the blocking response is a
-  flat object (`event`, `message_id`, `conversation_id`, `mode`, `answer`,
-  `metadata`, `created_at`), and only the `answer` string needs extraction —
-  not arbitrary JSON
-- the extractor locates the `"answer"` key, skips past `:` and whitespace to
-  the opening quote, then scans forward tracking backslash-escape state to
-  find the first **unescaped** closing quote — a naive `grep`/`cut` on `"`
-  would misparse an escaped quote (`\"`) inside the answer text, which is the
-  failure most likely to silently corrupt a commit message
-- the captured slice is then unescaped: `\"` → `"`, `\\` → `\`, `\n`/`\t`/`\r`
-  → their literal characters, `\/` → `/`
-- two assumptions need a one-time check against a real Dify response before
-  they're trusted: that `"answer"` is unique/first-occurring at the top level
-  (a same-named key nested in `metadata.retriever_resources` would break a
-  first-match scan), and whether the backend ever emits non-ASCII text as
-  `\uXXXX` escapes rather than raw UTF-8 bytes — if it does, decoding needs
-  `printf '%b'`, which supports `\uHHHH` only from Bash 4.2 onward, setting a
-  version floor
+- request-body encoding: `jq -n --arg query "${diff}" --arg user "${DIFY_USER}" '{query:$query, inputs:{}, response_mode:"blocking", user:$user, auto_generate_name:false}'`
+  builds the payload, so the diff never needs manual escaping
+- reply parsing: `jq -r '.answer'` extracts the result field directly from the
+  blocking response, correctly handling escaped quotes, embedded newlines, and
+  `\uXXXX` sequences (including surrogate pairs for emoji) without any
+  hand-written decoder
+- a non-2xx HTTP status is checked before parsing, so an error body (which
+  carries `code`/`message`, not `answer`) is never fed to the extractor
 
 ## Requirements
-
-The confirmed minimal command set — nothing beyond what a fresh Debian
-machine already has, per the `jq` decision above:
 
 | Command | Why |
 | --- | --- |
 | `bash` | the implementation language itself |
 | `git` | the hook context, and the source of `git diff --cached` |
 | `curl` | the transport for `POST /chat-messages` |
+| `jq` | builds the request body and parses the reply; see [JSON Handling](#json-handling) |
 
-`jq` is deliberately **not** on this list — see [JSON Handling](#json-handling).
 `--verify` checks this exact set, plus configuration, so an end user has one
 command to confirm the environment is ready before relying on the hook.
 

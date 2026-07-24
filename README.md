@@ -10,9 +10,10 @@ to run as a Git commit hook.
 
 ## Requirements
 
-- **Bash**, **Git**, and **curl** — nothing else; a fresh Debian machine
-  already has everything this needs
-- a **Dify** app with an API key
+- `bash`, `git`, `curl`, `jq`, and a **Dify** app with an API key
+
+> [!IMPORTANT]
+> Install `jq` before using this hook.
 
 ## Setup
 
