@@ -27,6 +27,7 @@ planning so that the implementation and its documentation stay aligned.
 | leading-dash mode dispatch | confirmed |
 | `bin/` placement | dropped — one file needs no directory |
 | `verify-commit-sense-via-dify.sh` name | dropped — folded into `--verify` |
+| `jq` as a dependency | dropped — reply parsed with a hand-rolled extractor |
 
 ## Dify Backend
 
@@ -161,20 +162,50 @@ caller supplies them; the script never synthesizes them itself.
 
 Building the request body and parsing the reply both require correct JSON
 handling — the diff and the reply text can contain quotes, backslashes, and
-newlines that break naive string handling.
+newlines that break naive string handling. Neither direction depends on `jq`;
+requiring it was rejected because it directly contradicts the goal of
+zero-friction installation, and it is **not installed by default on Debian**
+(no netinst, server, desktop, or official Docker image ships it) — a
+missing-`jq` failure would hit every contributor on a fresh machine, exactly
+the manual intervention this project exists to eliminate.
 
-- request-body encoding is safe to hand-roll in pure Bash with parameter
+- request-body encoding is hand-rolled in pure Bash with parameter
   expansion — a fixed escaping order for backslashes, quotes, and control
-  characters
-- reply parsing is the riskier half to hand-roll — a hand-written JSON-value
-  extractor is the piece most likely to silently corrupt an occasional commit
-  message, since the reply can contain escaped quotes and nested objects from
-  `metadata`
-- `jq` is the safer way to parse the reply, but it is **not installed by
-  default on Debian** (no netinst, server, desktop, or official Docker image
-  ships it), so a hook that must run on arbitrary contributor machines cannot
-  assume its presence — `jq` needs to be a documented hard prerequisite with a
-  preflight check, or the reply parser needs to be hand-rolled carefully
+  characters, applied once to the staged diff before it goes into the `query`
+  field
+- reply parsing is scoped, not general-purpose: the blocking response is a
+  flat object (`event`, `message_id`, `conversation_id`, `mode`, `answer`,
+  `metadata`, `created_at`), and only the `answer` string needs extraction —
+  not arbitrary JSON
+- the extractor locates the `"answer"` key, skips past `:` and whitespace to
+  the opening quote, then scans forward tracking backslash-escape state to
+  find the first **unescaped** closing quote — a naive `grep`/`cut` on `"`
+  would misparse an escaped quote (`\"`) inside the answer text, which is the
+  failure most likely to silently corrupt a commit message
+- the captured slice is then unescaped: `\"` → `"`, `\\` → `\`, `\n`/`\t`/`\r`
+  → their literal characters, `\/` → `/`
+- two assumptions need a one-time check against a real Dify response before
+  they're trusted: that `"answer"` is unique/first-occurring at the top level
+  (a same-named key nested in `metadata.retriever_resources` would break a
+  first-match scan), and whether the backend ever emits non-ASCII text as
+  `\uXXXX` escapes rather than raw UTF-8 bytes — if it does, decoding needs
+  `printf '%b'`, which supports `\uHHHH` only from Bash 4.2 onward, setting a
+  version floor
+
+## Requirements
+
+The confirmed minimal command set — nothing beyond what a fresh Debian
+machine already has, per the `jq` decision above:
+
+| Command | Why |
+| --- | --- |
+| `bash` | the implementation language itself |
+| `git` | the hook context, and the source of `git diff --cached` |
+| `curl` | the transport for `POST /chat-messages` |
+
+`jq` is deliberately **not** on this list — see [JSON Handling](#json-handling).
+`--verify` checks this exact set, plus configuration, so an end user has one
+command to confirm the environment is ready before relying on the hook.
 
 ## Runtime Expectations
 
