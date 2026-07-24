@@ -193,6 +193,37 @@ dependency decision is reversed: **`jq` is now required.**
 `--verify` checks this exact set, plus configuration, so an end user has one
 command to confirm the environment is ready before relying on the hook.
 
+## Remaining Implementation
+
+The skeleton, configuration, JSON handling, and transport
+(`call_dify_chat`/`call_dify_info`) are implemented and tested. What is left,
+in order:
+
+- **`--verify` preflight** — fill `run_verify`: call `check_dependencies`,
+  `resolve_config`, then `call_dify_info`, and confirm its `mode` field (via
+  `extract_json_field`) is `advanced-chat`. Report each check on `stderr` and
+  exit non-zero on the first failure. This branch must never resolve a
+  message-file path, per [Argument Dispatch](#argument-dispatch)
+- **hook gate** — add a `should_generate` check ahead of `run_hook`'s body:
+  skip (exit `0`, message untouched) when `COMMIT_SENSE_SKIP` is non-empty,
+  when `$2` is `message`, `merge`, `squash`, or `commit`, or when
+  `git diff --cached` is empty. Extend
+  [tests/test-commit-sense-via-dify.sh](tests/test-commit-sense-via-dify.sh)
+  with one case per branch
+- **generation and message write** — in `run_hook`, capture the staged diff,
+  show a `stderr` spinner while `call_dify_chat` runs (stopping it on every
+  exit path, including interrupt), then prepend the answer above the existing
+  contents of `$1` through a temporary file and a single `mv`. On failure,
+  leave `$1` exactly as Git left it and exit non-zero — never write an empty
+  message
+- **live probe and documentation sync** — with `DIFY_API_KEY` exported,
+  capture one real blocking response to confirm `answer` behaves as expected
+  against production Dify, then drop the "planned"/"not yet implemented"
+  notices from [README.md](README.md) and [AGENTS.md](AGENTS.md), replace the
+  *Design Status* table above with the shipped reality, add install/usage
+  instructions to [README.md](README.md), and record the work under
+  `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md)
+
 ## Runtime Expectations
 
 - the working directory is the repository root, so relative paths resolve there
