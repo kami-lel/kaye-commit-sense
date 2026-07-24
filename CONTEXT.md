@@ -23,9 +23,10 @@ planning so that the implementation and its documentation stay aligned.
 | Dify app, endpoint, and reply mode | confirmed |
 | implementation language: Bash | confirmed |
 | `prepare-commit-msg` as the hook stage | confirmed |
-| single script vs. hook script + verify script | undecided |
-| `bin/` placement | proposed |
-| `verify-commit-sense-via-dify.sh` name | proposed, pending the split decision |
+| single script carrying both modes | confirmed |
+| leading-dash mode dispatch | confirmed |
+| `bin/` placement | dropped — one file needs no directory |
+| `verify-commit-sense-via-dify.sh` name | dropped — folded into `--verify` |
 
 ## Dify Backend
 
@@ -51,21 +52,54 @@ Configuration arrives through the environment: `DIFY_API_KEY`,
 
 ## Components
 
-Still open: whether this ships as a single Bash script, or as two — a
-hook script that generates the message, and a separate script that validates
-configuration and tests the Dify connection. The two-script sketch below
-reflects planning so far, not a final decision.
+The project ships as one file, `commit-sense-via-dify.sh`, carrying both the
+hook entry and the preflight checker. A two-script split was considered —
+a generator plus a separate `verify-commit-sense-via-dify.sh` — but rejected:
+the two would share roughly 80% of their code (`resolve_config`,
+`check_dependencies`, the transport, the `stderr` reporting), and the split's
+only structural benefit — a verifier that cannot physically write a message —
+is obtainable behaviorally instead, at far lower cost than the split's
+liabilities:
 
-| Script | Responsibility |
-| --- | --- |
-| `commit-sense-via-dify.sh` | generator — staged diff to Dify to commit message |
-| `verify-commit-sense-via-dify.sh` | checker — validates configuration, tests the connection |
+- the checker would need to `source` the generator, which demands a
+  sourced-versus-executed guard around `main`; any top-level statement above
+  that guard misfires silently when sourced
+- a hook is typically installed as a copy or a symlink into
+  `.git/hooks/prepare-commit-msg`, which relocates the generator away from its
+  sibling and breaks a same-directory lookup
+- installation is this project's core promise — fetch one file, mark it
+  executable, symlink it into the hook path — and a two-file placement ritual
+  undermines exactly that
 
-If the split is kept, the checker sources the generator to reuse
-`resolve_config` and `check_dependencies`, so the generator's `main` runs only
-when the file is executed directly, never when sourced. The checker confirms
-dependencies and configuration, calls `GET /info`, and verifies the reported
-mode is `advanced-chat`. It is a manual preflight tool, not a hook entry.
+### Argument Dispatch
+
+One rule separates hook usage from preflight usage: **if the first argument
+begins with `-`, it selects a mode; otherwise the full argument list is Git's
+positional contract**, since Git never passes a message-file path starting
+with `-`.
+
+| First argument | Mode | Behavior |
+| --- | --- | --- |
+| absent | usage | print the synopsis to `stderr`, exit `2` |
+| `--verify` | preflight | check dependencies and configuration, call `GET /info`, confirm `advanced-chat` |
+| `-h`, `--help` | help | print the synopsis to `stdout`, exit `0` |
+| `--version` | version | print the version string, exit `0` |
+| `--` | hook, explicit | shift once, treat the rest as Git's `$1`/`$2`/`$3` |
+| any other `-`-prefixed token | error | unknown mode, exit `2` |
+| any other token | hook, implicit | Git's `$1`/`$2`/`$3` contract applies |
+
+`--verify` never resolves a message-file path, so the write path is
+unreachable from that branch — the same guarantee the two-script split would
+have given structurally, recovered here by construction. A bare invocation
+with zero arguments must not attempt to generate, since there is no message
+file to write to.
+
+Considered and rejected: subcommands (`generate`/`verify`), which would break
+direct symlinking into the hook path; a mode environment variable, which
+conflates behavior selection with the settings channel already used by
+`DIFY_API_KEY` and its siblings; and an inverted default where verify is
+implicit and the hook path is the special case, which does not match actual
+usage frequency.
 
 ## Data Flow
 
