@@ -33,6 +33,9 @@ readonly VERSION="0.1.0"
 readonly DEFAULT_USER="user"
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
+# below Dify's 100-second blocking cutoff
+readonly REQUEST_TIMEOUT_SECONDS=90
+
 
 # environment  #################################################################
 check_dependencies() {  ########################################################
@@ -102,6 +105,72 @@ extract_json_field() {  ########################################################
     local json="$1"
     local key="$2"
     jq -r --arg key "${key}" '.[$key]' <<<"${json}"
+}
+
+
+# transport  ###################################################################
+# blocking POST /chat-messages; prints the answer on stdout, fails closed on a
+# curl error, a non-2xx status, or a missing/empty answer
+call_dify_chat() {  #############################################################
+    local diff="$1"
+    local body response http_status answer
+
+    body="$(build_chat_request "${diff}" "${DIFY_USER}")"
+
+    if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
+        -X POST "${DIFY_BASE_URL}/chat-messages" \
+        -H "Authorization: Bearer ${DIFY_API_KEY}" \
+        -H 'Content-Type: application/json' \
+        -d "${body}" \
+        -w $'\n%{http_code}')"; then
+        printf 'commit-sense-via-dify.sh: error: request to %s failed\n' \
+            "${DIFY_BASE_URL}/chat-messages" >&2
+        return 1
+    fi
+
+    http_status="${response##*$'\n'}"
+    response="${response%$'\n'*}"
+
+    if [[ "${http_status}" != 2* ]]; then
+        printf 'commit-sense-via-dify.sh: error: %s returned HTTP %s\n' \
+            "${DIFY_BASE_URL}/chat-messages" "${http_status}" >&2
+        return 1
+    fi
+
+    answer="$(extract_answer "${response}")"
+    if [[ -z "${answer}" || "${answer}" == "null" ]]; then
+        printf 'commit-sense-via-dify.sh: error: no answer in Dify reply\n' >&2
+        return 1
+    fi
+
+    printf '%s' "${answer}"
+}
+
+
+# GET /info; prints the raw JSON on stdout, fails closed on a curl error or a
+# non-2xx status
+call_dify_info() {  #############################################################
+    local response http_status
+
+    if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
+        -X GET "${DIFY_BASE_URL}/info" \
+        -H "Authorization: Bearer ${DIFY_API_KEY}" \
+        -w $'\n%{http_code}')"; then
+        printf 'commit-sense-via-dify.sh: error: request to %s failed\n' \
+            "${DIFY_BASE_URL}/info" >&2
+        return 1
+    fi
+
+    http_status="${response##*$'\n'}"
+    response="${response%$'\n'*}"
+
+    if [[ "${http_status}" != 2* ]]; then
+        printf 'commit-sense-via-dify.sh: error: %s returned HTTP %s\n' \
+            "${DIFY_BASE_URL}/info" "${http_status}" >&2
+        return 1
+    fi
+
+    printf '%s' "${response}"
 }
 
 
