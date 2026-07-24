@@ -13,10 +13,10 @@ readonly USAGE_TEXT="\
 generate a Git commit message from the staged diff, through a Dify app.
 
 usage:
-  commit-sense-via-dify.sh <msg-file> [<source> [<commit>]]
-                                                run as a prepare-commit-msg hook
-  commit-sense-via-dify.sh --verify             check dependencies, settings, and backend
-  commit-sense-via-dify.sh [--help|--version]   print help/version
+  ./commit-sense-via-dify.sh <msg-file> [<source> [<commit>]]
+                            run as a prepare-commit-msg hook
+  ~~ --verify               check dependencies, settings, and backend
+  ~~ --help|--version       print help/version
 
 environment:
   DIFY_API_KEY                    required; the Dify Service API key
