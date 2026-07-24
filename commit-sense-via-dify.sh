@@ -31,7 +31,7 @@ environment:
 # constants  ###################################################################
 readonly VERSION="0.1.0"
 readonly DEFAULT_USER="user"
-readonly -a REQUIRED_COMMANDS=(git curl)
+readonly -a REQUIRED_COMMANDS=(git curl jq)
 
 
 # environment  #################################################################
@@ -69,6 +69,39 @@ resolve_config() {  ############################################################
     DIFY_BASE_URL="${DIFY_BASE_URL%/}"  # drop a trailing slash
 
     DIFY_USER="${DIFY_USER:-${DEFAULT_USER}}"
+}
+
+
+# json  ########################################################################
+# builds the /chat-messages request body; jq handles all escaping, including
+# quotes, backslashes, newlines, and non-ASCII in the diff
+build_chat_request() {  ########################################################
+    local diff="$1"
+    local user="$2"
+
+    jq -n --arg query "${diff}" --arg user "${user}" '{
+        query: $query,
+        inputs: {},
+        response_mode: "blocking",
+        auto_generate_name: false,
+        user: $user
+    }'
+}
+
+
+# extracts the "answer" field from a blocking /chat-messages response; jq
+# resolves \uXXXX escapes and UTF-16 surrogate pairs (emoji) on its own
+extract_answer() {  ############################################################
+    local json="$1"
+    jq -r '.answer' <<<"${json}"
+}
+
+
+# extracts a top-level string field by name; used for /info's "mode"
+extract_json_field() {  ########################################################
+    local json="$1"
+    local key="$2"
+    jq -r --arg key "${key}" '.[$key]' <<<"${json}"
 }
 
 
