@@ -10,6 +10,8 @@ set -euo pipefail
 
 # help  ########################################################################
 readonly USAGE_TEXT="\
+commit-sense-via-dify.sh
+
 generate a Git commit message from the staged diff, through a Dify app.
 
 usage:
@@ -20,18 +22,53 @@ usage:
 
 environment:
   DIFY_API_KEY                    required; the Dify Service API key
-  DIFY_BASE_URL                   optional; overrides the base address
-  DIFY_USER                       optional; identifies the author to Dify
-  COMMIT_SENSE_SKIP               any non-empty value skips generation"
+  DIFY_BASE_URL                   required; the Dify Service API address
+  DIFY_USER                       optional; the author reported to Dify
+  COMMIT_SENSE_SKIP               any non-empty value skips generation
+"
 
 
 # constants  ###################################################################
 readonly VERSION="0.1.0"
-readonly PROGRAM_NAME="commit-sense-via-dify.sh"
+readonly DEFAULT_USER="user"
+readonly -a REQUIRED_COMMANDS=(git curl)
 
 
-print_usage() {  ###############################################################
-    printf '%s\n\n%s\n' "${PROGRAM_NAME}" "${USAGE_TEXT}"
+# environment  #################################################################
+check_dependencies() {  ########################################################
+    local cmd
+    local -a missing=()
+
+    for cmd in "${REQUIRED_COMMANDS[@]}"; do
+        if ! command -v "${cmd}" >/dev/null 2>&1; then
+            missing+=("${cmd}")
+        fi
+    done
+
+    if ((${#missing[@]} > 0)); then
+        printf 'commit-sense-via-dify.sh: error: missing command: %s\n' \
+            "${missing[*]}" >&2
+        return 1
+    fi
+}
+
+
+# fills DIFY_API_KEY, DIFY_BASE_URL, DIFY_USER; the key is never printed
+resolve_config() {  ############################################################
+    DIFY_API_KEY="${DIFY_API_KEY-}"
+    if [[ -z "${DIFY_API_KEY}" ]]; then
+        printf 'commit-sense-via-dify.sh: error: DIFY_API_KEY is not set\n' >&2
+        return 1
+    fi
+
+    DIFY_BASE_URL="${DIFY_BASE_URL-}"
+    if [[ -z "${DIFY_BASE_URL}" ]]; then
+        printf 'commit-sense-via-dify.sh: error: DIFY_BASE_URL is not set\n' >&2
+        return 1
+    fi
+    DIFY_BASE_URL="${DIFY_BASE_URL%/}"  # drop a trailing slash
+
+    DIFY_USER="${DIFY_USER:-${DEFAULT_USER}}"
 }
 
 
@@ -52,6 +89,7 @@ run_hook() {
 # Entry Point  #################################################################
 main() {
     local is_hook_path=false
+    # BUG mpv branch structure
 
     case "${1-}" in  # ---------------------------------------------------------
         --verify)
@@ -59,7 +97,7 @@ main() {
             return
             ;;
         --help)  # -------------------------------------------------------------
-            print_usage
+            printf '%s' "${USAGE_TEXT}"
             return 0
             ;;
         --version)  # ----------------------------------------------------------
@@ -76,7 +114,7 @@ main() {
             fi
             ;;
         -*)  # -----------------------------------------------------------------
-            printf '%s: unknown mode: %s\n' "${PROGRAM_NAME}" "$1" >&2
+            printf 'commit-sense-via-dify.sh: unknown mode: %s\n' "$1" >&2
             ;;
         *)  # ------------------------------------------------------------------
             # implicit hook path; Git never passes a leading-dash msg-file
@@ -89,7 +127,7 @@ main() {
         return
     fi
 
-    print_usage >&2
+    printf '%s' "${USAGE_TEXT}" >&2
     return 2
 }
 
