@@ -7,10 +7,11 @@ behavioral rules and commands, see [AGENTS.md](AGENTS.md).
 
 ## Purpose
 
-Generate a Git commit message automatically from the staged changes by
-delegating the writing to a Dify application. The project runs during
-`git commit`, so the developer commits and receives a coherent message without
-composing it by hand.
+A Dify app that generates commit messages intelligently from a diff already
+exists. What is missing is the mechanism that connects it to actual Git usage:
+every commit needs to call the Dify app automatically, so the intelligence
+already built into the app is applied without the developer having to
+remember or trigger it by hand.
 
 ## Design Status
 
@@ -20,10 +21,11 @@ planning so that the implementation and its documentation stay aligned.
 | Decision | State |
 | --- | --- |
 | Dify app, endpoint, and reply mode | confirmed |
-| two-script split | confirmed |
+| implementation language: Bash | confirmed |
 | `prepare-commit-msg` as the hook stage | confirmed |
+| single script vs. hook script + verify script | undecided |
 | `bin/` placement | proposed |
-| `verify-commit-sense-via-dify.sh` name | proposed |
+| `verify-commit-sense-via-dify.sh` name | proposed, pending the split decision |
 
 ## Dify Backend
 
@@ -49,19 +51,21 @@ Configuration arrives through the environment: `DIFY_API_KEY`,
 
 ## Components
 
-Two scripts, kept separate so that credential and connectivity problems are
-diagnosed outside the commit path.
+Still open: whether this ships as a single Bash script, or as two — a
+hook script that generates the message, and a separate script that validates
+configuration and tests the Dify connection. The two-script sketch below
+reflects planning so far, not a final decision.
 
 | Script | Responsibility |
 | --- | --- |
 | `commit-sense-via-dify.sh` | generator — staged diff to Dify to commit message |
 | `verify-commit-sense-via-dify.sh` | checker — validates configuration, tests the connection |
 
-The checker sources the generator to reuse `resolve_config` and
-`check_dependencies`, so the generator's `main` runs only when the file is
-executed directly, never when sourced. The checker confirms dependencies and
-configuration, calls `GET /info`, and verifies the reported mode is
-`advanced-chat`. It is a manual preflight tool, not a hook entry.
+If the split is kept, the checker sources the generator to reuse
+`resolve_config` and `check_dependencies`, so the generator's `main` runs only
+when the file is executed directly, never when sourced. The checker confirms
+dependencies and configuration, calls `GET /info`, and verifies the reported
+mode is `advanced-chat`. It is a manual preflight tool, not a hook entry.
 
 ## Data Flow
 
@@ -118,6 +122,25 @@ caller supplies them; the script never synthesizes them itself.
 | `merge` | skip — Git supplied a merge message |
 | `squash` | skip — Git supplied a squash message |
 | `commit` | skip — an existing commit is being reused |
+
+## JSON Handling
+
+Building the request body and parsing the reply both require correct JSON
+handling — the diff and the reply text can contain quotes, backslashes, and
+newlines that break naive string handling.
+
+- request-body encoding is safe to hand-roll in pure Bash with parameter
+  expansion — a fixed escaping order for backslashes, quotes, and control
+  characters
+- reply parsing is the riskier half to hand-roll — a hand-written JSON-value
+  extractor is the piece most likely to silently corrupt an occasional commit
+  message, since the reply can contain escaped quotes and nested objects from
+  `metadata`
+- `jq` is the safer way to parse the reply, but it is **not installed by
+  default on Debian** (no netinst, server, desktop, or official Docker image
+  ships it), so a hook that must run on arbitrary contributor machines cannot
+  assume its presence — `jq` needs to be a documented hard prerequisite with a
+  preflight check, or the reply parser needs to be hand-rolled carefully
 
 ## Runtime Expectations
 
