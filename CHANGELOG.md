@@ -1,8 +1,9 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-BUG rewrite the tests
-TODO write demos
+Fixme split hook script by modules
+Bug rewrite the tests
+Todo write demos using plan saved in CONTEXT
 -->
 
 [^format]

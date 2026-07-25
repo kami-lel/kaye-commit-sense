@@ -1,6 +1,6 @@
 # commit-sense-via-dify CONTEXT
 
-Last updated: 2026-07-24
+Last updated: 2026-07-26
 
 Descriptive knowledge of what this project is and how it is meant to work. For
 behavioral rules and commands, see [AGENTS.md](AGENTS.md).
@@ -99,6 +99,66 @@ conflates behavior selection with the settings channel already used by
 `DIFY_API_KEY` and its siblings; and an inverted default where verify is
 implicit and the hook path is the special case, which does not match actual
 usage frequency.
+
+## Planned: Stage Split and Fixture Example
+
+Status: **planned, not implemented.**
+
+`run_hook` currently welds five concerns into one function — the skip gates,
+capturing `git diff --cached`, resolving configuration, calling Dify, and
+rewriting the message file. Nothing in the script can turn *a diff already in
+hand* into *a commit message on stdout*, so the fixtures under `tests/diffs/`
+cannot be exercised end to end without staging them into a real repository.
+
+The intended outcome is a runnable example that feeds
+`tests/diffs/single-reorder.diff` through the real Dify backend and prints the
+generated message to stdout. The example sources the script rather than adding
+a command-line mode, since the sourced-versus-executed guard around `main`
+already supports that and no new public interface is wanted.
+
+### Stages
+
+`run_hook` splits into four functions, behavior unchanged, with `run_hook`
+reduced to orchestration over them:
+
+| Stage | Responsibility |
+| --- | --- |
+| `is_generation_allowed SOURCE` | the `COMMIT_SENSE_SKIP` check and the `message`/`merge`/`squash`/`commit` case; `0` means proceed |
+| `read_staged_diff` | wraps `git diff --cached`, prints the diff on stdout |
+| `generate_message DIFF` | resolves configuration, draws the spinner, calls Dify, prints the message on stdout |
+| `write_message_file ANSWER MSG_FILE` | the `mktemp` / prepend / `mv` sequence |
+
+`generate_message` is the reusable seam — the one an example, a fixture run, or
+a future batch driver can call without a staged index or a message file.
+`resolve_config`, `call_dify_chat`, and `spinner` are reused untouched; the
+split is pure extraction. The skip semantics the test suite asserts (exit `0`
+on every skip path) must survive it.
+
+### Steps
+
+1. split `run_hook` into the four stages above — `kaye-commit-sense-hook.sh`
+2. rebuild `run_hook` as orchestration over them, leaving `main` and the
+   argument-dispatch table untouched — `kaye-commit-sense-hook.sh`
+3. add `examples/single-reorder-demo.sh` — resolves the repository root from
+   `BASH_SOURCE`, sources the hook script, reads the fixture, calls
+   `generate_message`, prints the message on stdout, exits non-zero on failure
+4. repoint `tests/test-commit-sense-via-dify.sh` at
+   `../kaye-commit-sense-hook.sh`; it still sources the pre-rename
+   `commit-sense-via-dify.sh` and therefore cannot run at all
+5. note the example in `README.md` and record the change under `[Unreleased]`
+   in `CHANGELOG.md`
+
+### Verification
+
+- `shellcheck kaye-commit-sense-hook.sh examples/single-reorder-demo.sh`
+- `bash tests/test-commit-sense-via-dify.sh` — passes once Step 4 lands
+- with credentials exported, `./examples/single-reorder-demo.sh` prints a
+  commit message on stdout and exits `0`; without them it fails non-zero with
+  a readable error and prints nothing on stdout
+- `COMMIT_SENSE_SKIP=1 git commit` still short-circuits
+
+The example requires `KCC_DIFY_API_SECRET_KEY` and
+`KCC_DIFY_SERVICE_API_ENDPOINT`, since it performs a real Dify call.
 
 ## Data Flow
 
