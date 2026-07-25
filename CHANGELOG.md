@@ -1,6 +1,10 @@
 # commit-sense-via-dify CHANGELOG
 
-<!-- Todo add a hook stub -->
+<!--
+Todo add a hook stub
+BUG rewrite the tests
+TODO write demos
+-->
 
 [^format]
 
