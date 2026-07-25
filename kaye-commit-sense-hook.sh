@@ -35,7 +35,7 @@ readonly LOGGER_ENV="KCSHook.env"  # module logger name
 # every command the run depends on
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
-check_dependencies() {  ########################################################
+check_dependencies() {  # ------------------------------------------------------
     local cmd
     local -a missing=()
 
@@ -55,7 +55,7 @@ check_dependencies() {  ########################################################
 
 # fills KCC_DIFY_API_SECRET_KEY and KCC_DIFY_SERVICE_API_ENDPOINT;
 # the key is never printed
-resolve_config() {  ############################################################
+resolve_config() {  # ----------------------------------------------------------
     KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
     if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
         printf 'KCC_DIFY_API_SECRET_KEY is not set\n' \
@@ -83,10 +83,9 @@ readonly DIFY_USER="user"
 # below Dify's 100-second blocking cutoff
 readonly REQUEST_TIMEOUT_SECONDS=90
 
-# wire format  =================================================================
 # builds the /chat-messages request body; jq handles all escaping, including
 # quotes, backslashes, newlines, and non-ASCII in the diff
-build_chat_request() {  ########################################################
+build_chat_request() {  # ------------------------------------------------------
     local diff="$1"
     local user="$2"
 
@@ -102,24 +101,23 @@ build_chat_request() {  ########################################################
 
 # extracts the "answer" field from a blocking /chat-messages response; jq
 # resolves \uXXXX escapes and UTF-16 surrogate pairs (emoji) on its own
-extract_answer() {  ############################################################
+extract_answer() {  # ----------------------------------------------------------
     local json="$1"
     jq -r '.answer' <<<"${json}"
 }
 
 
 # extracts a top-level string field by name; used for /info's "mode"
-extract_json_field() {  ########################################################
+extract_json_field() {  # ------------------------------------------------------
     local json="$1"
     local key="$2"
     jq -r --arg key "${key}" '.[$key]' <<<"${json}"
 }
 
 
-# calls  =======================================================================
 # blocking POST /chat-messages; prints the answer on stdout, fails closed on a
 # curl error, a non-2xx status, or a missing/empty answer
-call_dify_chat() {  ############################################################
+call_dify_chat() {  # ----------------------------------------------------------
     local diff="$1"
     local body response http_status answer
 
@@ -160,7 +158,7 @@ call_dify_chat() {  ############################################################
 
 # GET /info; prints the raw JSON on stdout, fails closed on a curl error or a
 # non-2xx status
-call_dify_info() {  ############################################################
+call_dify_info() {  # ----------------------------------------------------------
     local response http_status
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
@@ -196,7 +194,7 @@ readonly LOGGER_SPINNER="KCSHook.spinner"  # module logger name
 _spinner_pid=""
 
 # simple spinner drawn on stderr; call with "start", then "stop"
-spinner() {  ###################################################################
+spinner() {  # -----------------------------------------------------------------
     local action="$1"
     local frames=("|" "/" "-" "\\")
     local i=0
@@ -236,7 +234,7 @@ readonly LOGGER_STAGES="KCSHook.stages"  # module logger name
 
 # decides whether generation should happen at all, given Git's $2 source
 # argument; 0 means proceed, 1 means skip
-is_generation_allowed() {  #####################################################
+is_generation_allowed() {  # ---------------------------------------------------
     local source="${1-}"
 
     if [[ -n "${COMMIT_SENSE_SKIP-}" ]]; then
@@ -254,14 +252,14 @@ is_generation_allowed() {  #####################################################
 
 
 # prints the staged diff on stdout; empty output means nothing is staged
-read_staged_diff() {  ##########################################################
+read_staged_diff() {  # --------------------------------------------------------
     git diff --cached
 }
 
 
 # turns a diff already in hand into a commit message on stdout; the reusable
 # seam, needing neither a staged index nor a message file
-generate_message() {  ##########################################################
+generate_message() {  # --------------------------------------------------------
     local diff="$1"
     local answer
 
@@ -282,7 +280,7 @@ generate_message() {  ##########################################################
 
 
 # reads a diff from a file and hands it to generate_message
-generate_message_from_file() {  ################################################
+generate_message_from_file() {  # ----------------------------------------------
     local diff_file="$1"
     local diff
 
@@ -305,7 +303,7 @@ generate_message_from_file() {  ################################################
 
 # prepends the answer above the existing message; the temporary file makes the
 # replacement atomic, so an interrupted run never leaves a half-written message
-write_message_file() {  ########################################################
+write_message_file() {  # ------------------------------------------------------
     local answer="$1"
     local msg_file="$2"
     local tmp_file
@@ -346,7 +344,7 @@ environment:
 "
 
 # checks dependencies, configuration, and the backend; writes nothing
-run_verify() {  ################################################################
+run_verify() {  # --------------------------------------------------------------
     local mode
     local exit_code=0
 
@@ -389,7 +387,7 @@ run_verify() {  ################################################################
 
 
 # takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
-run_hook() {  ##################################################################
+run_hook() {  # ----------------------------------------------------------------
     local msg_file="$1"
     local source="${2-}"
     local diff answer
@@ -420,7 +418,7 @@ run_hook() {  ##################################################################
 
 
 # a leading dash selects a mode; anything else is Git's positional contract
-main() {  ######################################################################
+main() {  # --------------------------------------------------------------------
     local is_hook_path=false
 
     case "${1-}" in
