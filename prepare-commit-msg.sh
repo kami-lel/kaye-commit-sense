@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#
+################################################################################
+# prepare-commit-msg.sh
+#
+# stub Git hook; install as `prepare-commit-msg` alongside
+# kaye-commit-sense-hook.sh, which it forwards to
+################################################################################
+set -euo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "${HOOK_DIR}/kaye-commit-sense-hook.sh" "$@"
