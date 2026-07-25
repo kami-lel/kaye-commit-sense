@@ -332,6 +332,7 @@ run_hook() {
         return 1
     fi
 
+    printf 'done\n' | kamilog logger "done" "${LOGGER_NAME}"
     return 0
 }
 
