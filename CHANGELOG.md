@@ -1,7 +1,6 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-Fixme split hook script by modules
 Bug rewrite the tests
 Todo write demos using plan saved in CONTEXT
 -->
@@ -35,6 +34,11 @@ Todo write demos using plan saved in CONTEXT
 - optional `kamilog` integration: structured `info`/`error` logging throughout
   the hook, degrading to a no-op shim when `kamilog` is not installed
 - `kamilog` "done" log line on a successful hook run
+- reusable run stages extracted from `run_hook`: `is_generation_allowed`,
+  `read_staged_diff`, `generate_message`, `generate_message_from_file`, and
+  `write_message_file`, each callable on its own by a future example or test
+- `generate_message_from_file`: turns a diff already saved to a file into a
+  commit message, without a staged index
 
 ### Changed
 
@@ -44,6 +48,16 @@ Todo write demos using plan saved in CONTEXT
 - updated all documentation to reflect completed implementation
 - renamed `prepare-commit-msg.sh` to `prepare-commit-msg` to match its
   installed hook name
+- `run_hook` reduced to orchestration over the new stage functions, behavior
+  unchanged
+- `kamilog` logger names split per module (`KCSHook.env`, `KCSHook.dify`,
+  `KCSHook.spinner`, `KCSHook.stages`, `KCSHook`) in place of one flat
+  `LOGGER_NAME`
+- messages piped to `kamilog` no longer carry a trailing newline
+- section banners inside the script use a consistent dash-ruled sub-heading in
+  place of ad hoc inline dividers
+- `USAGE_TEXT` relocated next to `main`, grouped with the rest of the
+  entry-point section; `VERSION` moved back to the top of the script
 
 ### Deprecated
 

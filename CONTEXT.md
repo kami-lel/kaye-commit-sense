@@ -100,15 +100,16 @@ conflates behavior selection with the settings channel already used by
 implicit and the hook path is the special case, which does not match actual
 usage frequency.
 
-## Planned: Stage Split and Fixture Example
+## Partially Implemented: Stage Split and Fixture Example
 
-Status: **planned, not implemented.**
+Status: **stage split done; fixture example, test repoint, and README note
+still open.**
 
-`run_hook` currently welds five concerns into one function — the skip gates,
-capturing `git diff --cached`, resolving configuration, calling Dify, and
-rewriting the message file. Nothing in the script can turn *a diff already in
-hand* into *a commit message on stdout*, so the fixtures under `tests/diffs/`
-cannot be exercised end to end without staging them into a real repository.
+`run_hook` welded five concerns into one function — the skip gates, capturing
+`git diff --cached`, resolving configuration, calling Dify, and rewriting the
+message file. Nothing in the script could turn *a diff already in hand* into
+*a commit message on stdout*, so the fixtures under `tests/diffs/` could not
+be exercised end to end without staging them into a real repository.
 
 The intended outcome is a runnable example that feeds
 `tests/diffs/single-reorder.diff` through the real Dify backend and prints the
@@ -118,35 +119,39 @@ already supports that and no new public interface is wanted.
 
 ### Stages
 
-`run_hook` splits into four functions, behavior unchanged, with `run_hook`
-reduced to orchestration over them:
+`run_hook` is now split into five functions, behavior unchanged, with
+`run_hook` reduced to orchestration over them:
 
 | Stage | Responsibility |
 | --- | --- |
 | `is_generation_allowed SOURCE` | the `COMMIT_SENSE_SKIP` check and the `message`/`merge`/`squash`/`commit` case; `0` means proceed |
 | `read_staged_diff` | wraps `git diff --cached`, prints the diff on stdout |
 | `generate_message DIFF` | resolves configuration, draws the spinner, calls Dify, prints the message on stdout |
+| `generate_message_from_file DIFF_FILE` | reads a diff from a file, then hands it to `generate_message` |
 | `write_message_file ANSWER MSG_FILE` | the `mktemp` / prepend / `mv` sequence |
 
 `generate_message` is the reusable seam — the one an example, a fixture run, or
 a future batch driver can call without a staged index or a message file.
+`generate_message_from_file` extends that seam to a diff already saved on
+disk, which is the shape the `tests/diffs/` fixtures are in.
 `resolve_config`, `call_dify_chat`, and `spinner` are reused untouched; the
 split is pure extraction. The skip semantics the test suite asserts (exit `0`
-on every skip path) must survive it.
+on every skip path) survive it.
 
 ### Steps
 
-1. split `run_hook` into the four stages above — `kaye-commit-sense-hook.sh`
+1. split `run_hook` into the stages above — `kaye-commit-sense-hook.sh` — done
 2. rebuild `run_hook` as orchestration over them, leaving `main` and the
-   argument-dispatch table untouched — `kaye-commit-sense-hook.sh`
+   argument-dispatch table untouched — `kaye-commit-sense-hook.sh` — done
 3. add `examples/single-reorder-demo.sh` — resolves the repository root from
    `BASH_SOURCE`, sources the hook script, reads the fixture, calls
-   `generate_message`, prints the message on stdout, exits non-zero on failure
+   `generate_message`, prints the message on stdout, exits non-zero on
+   failure — still open
 4. repoint `tests/test-commit-sense-via-dify.sh` at
    `../kaye-commit-sense-hook.sh`; it still sources the pre-rename
-   `commit-sense-via-dify.sh` and therefore cannot run at all
+   `commit-sense-via-dify.sh` and therefore cannot run at all — still open
 5. note the example in `README.md` and record the change under `[Unreleased]`
-   in `CHANGELOG.md`
+   in `CHANGELOG.md` — still open
 
 ### Verification
 
@@ -268,6 +273,14 @@ All components are now implemented and tested:
 - **environment variables** — updated to use `KCC_DIFY_API_SECRET_KEY` and
   `KCC_DIFY_SERVICE_API_ENDPOINT`; the user identifier is hardcoded to
   `"user"` and no longer configurable via environment.
+- **stage split** ✓ — `run_hook` reduced to orchestration over
+  `is_generation_allowed`, `read_staged_diff`, `generate_message`,
+  `generate_message_from_file`, and `write_message_file`; see
+  [Partially Implemented: Stage Split and Fixture Example](#partially-implemented-stage-split-and-fixture-example)
+  for the example and test work still open.
+- **per-module logging** ✓ — each script section owns its own `kamilog`
+  logger name (`KCSHook.env`, `KCSHook.dify`, `KCSHook.spinner`,
+  `KCSHook.stages`, `KCSHook`) in place of one flat logger name.
 
 ## Runtime Expectations
 
