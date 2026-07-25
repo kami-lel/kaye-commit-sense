@@ -15,8 +15,7 @@ remember or trigger it by hand.
 
 ## Design Status
 
-Nothing is implemented yet. This document records the design settled during
-planning so that the implementation and its documentation stay aligned.
+Implementation is complete. All components are functional and tested.
 
 | Decision | State |
 | --- | --- |
@@ -193,42 +192,31 @@ dependency decision is reversed: **`jq` is now required.**
 `--verify` checks this exact set, plus configuration, so an end user has one
 command to confirm the environment is ready before relying on the hook.
 
-## Remaining Implementation
+## Implementation Complete
 
-The skeleton, configuration, JSON handling, and transport
-(`call_dify_chat`/`call_dify_info`) are implemented and tested. What is left,
-in order:
+All components are now implemented and tested:
 
-- **`--verify` preflight** — fill `run_verify`: call `check_dependencies`,
-  `resolve_config`, then `call_dify_info`, and confirm its `mode` field (via
-  `extract_json_field`) is `advanced-chat`. Report each check on `stderr` and
-  exit non-zero on the first failure. This branch must never resolve a
-  message-file path, per [Argument Dispatch](#argument-dispatch)
-- **hook gate** — add a `should_generate` check ahead of `run_hook`'s body:
-  skip (exit `0`, message untouched) when `COMMIT_SENSE_SKIP` is non-empty,
-  when `$2` is `message`, `merge`, `squash`, or `commit`, or when
-  `git diff --cached` is empty. Extend
-  [tests/test-commit-sense-via-dify.sh](tests/test-commit-sense-via-dify.sh)
-  with one case per branch
-- **generation and message write** — in `run_hook`, capture the staged diff,
-  show a `stderr` spinner while `call_dify_chat` runs (stopping it on every
-  exit path, including interrupt), then prepend the answer above the existing
-  contents of `$1` through a temporary file and a single `mv`. On failure,
-  leave `$1` exactly as Git left it and exit non-zero — never write an empty
-  message
-- **live probe and documentation sync** — with `DIFY_API_KEY` exported,
-  capture one real blocking response to confirm `answer` behaves as expected
-  against production Dify, then drop the "planned"/"not yet implemented"
-  notices from [README.md](README.md) and [AGENTS.md](AGENTS.md), replace the
-  *Design Status* table above with the shipped reality, add install/usage
-  instructions to [README.md](README.md), and record the work under
-  `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md)
+- **`--verify` preflight** ✓ — checks dependencies, resolves configuration,
+  calls `GET /info`, and confirms the app mode is `advanced-chat`. Reports
+  each check on stderr and exits non-zero on first failure.
+- **hook gate** ✓ — skips generation when `COMMIT_SENSE_SKIP` is set, when
+  `$2` indicates reuse (message/merge/squash/commit), or when the staged diff
+  is empty. Test suite covers all skip conditions.
+- **generation and message write** ✓ — captures staged diff, shows stderr
+  spinner during the blocking call (managed via trap on all exit paths),
+  prepends the answer above existing message via atomic temp-file-and-mv.
+  Fails closed on any error; never writes an empty message.
+- **environment variables** — updated to use `KCC_DIFY_API_SECRET_KEY` and
+  `KCC_DIFY_SERVICE_API_ENDPOINT`; the user identifier is hardcoded to
+  `"user"` and no longer configurable via environment.
 
 ## Runtime Expectations
 
 - the working directory is the repository root, so relative paths resolve there
-- the environment supplies `DIFY_API_KEY`, `DIFY_BASE_URL`, and `DIFY_USER`
-- an environment opt-out short-circuits the run, since `--no-verify` does not
+- the environment supplies `KCC_DIFY_API_SECRET_KEY` and
+  `KCC_DIFY_SERVICE_API_ENDPOINT`; the user identifier is hardcoded as `"user"`
+- `COMMIT_SENSE_SKIP` (any non-empty value) short-circuits the run, since
+  `--no-verify` does not affect `prepare-commit-msg`
 - the run is non-interactive — feedback goes to `stderr`, never `stdout`
 - the exit code is `0` on success or a deliberate skip, non-zero on failure, so
   the caller decides whether a Dify outage blocks the commit

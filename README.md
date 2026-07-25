@@ -6,7 +6,6 @@ A single Bash script that reads `git diff --cached`, sends it to a Dify app,
 waits with visual feedback, and returns the result as the commit message. Built
 to run as a Git commit hook.
 
-> ⚠️ **Status: planned** — `commit-sense-via-dify.sh` is not yet implemented.
 
 ## Requirements
 
@@ -17,9 +16,56 @@ to run as a Git commit hook.
 
 ## Setup
 
-- drop `commit-sense-via-dify.sh` into your repo and make it executable
-- export your Dify API key and endpoint in the environment
-- wire it into your Git commit hook
+### Prerequisites
+
+Ensure `jq`, `curl`, `git`, and `bash` are installed and in your `PATH`.
+
+### Installation
+
+1. Copy `commit-sense-via-dify.sh` to your repository and make it executable:
+   ```bash
+   cp commit-sense-via-dify.sh /path/to/your/repo/
+   chmod +x /path/to/your/repo/commit-sense-via-dify.sh
+   ```
+
+2. Install the hook into `.git/hooks/`:
+   ```bash
+   ln -s ../../commit-sense-via-dify.sh /path/to/your/repo/.git/hooks/prepare-commit-msg
+   ```
+
+3. Export your Dify credentials in your shell environment or in `.bashrc`:
+   ```bash
+   export KCC_DIFY_API_SECRET_KEY="your-dify-api-key"
+   export KCC_DIFY_SERVICE_API_ENDPOINT="http://your-dify-instance/v1"
+   ```
+
+### Verification
+
+Run the preflight check to confirm everything is wired correctly:
+```bash
+./commit-sense-via-dify.sh --verify
+```
+
+This checks that dependencies are present, configuration is set, and the Dify
+app is reachable and configured as `advanced-chat` mode.
+
+## Usage
+
+The hook runs automatically on `git commit`. To skip generation for a single
+commit, set the opt-out:
+```bash
+COMMIT_SENSE_SKIP=1 git commit
+```
+
+To test the hook manually:
+```bash
+./commit-sense-via-dify.sh /tmp/test-message "template"
+```
+
+For help:
+```bash
+./commit-sense-via-dify.sh --help
+```
 
 ## Docs
 

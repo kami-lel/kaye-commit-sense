@@ -9,7 +9,6 @@ The entire project is a single Bash script, `commit-sense-via-dify.sh`, that
 generates Git commit messages from the staged diff via a Dify app. See
 [CONTEXT.md](CONTEXT.md) for design and data flow.
 
-> Status: the script is not yet implemented. This repository holds scaffolding.
 
 ## Scope
 
@@ -27,9 +26,10 @@ generates Git commit messages from the staged diff via a Dify app. See
 
 ## Testing Instructions
 
-- lint the script with `shellcheck commit-sense-via-dify.sh`
-- format with `shfmt -i 2 -w commit-sense-via-dify.sh` if available
-- smoke-test manually: stage a change, run the script, inspect the output
+- run unit tests: `bash tests/test-commit-sense-via-dify.sh`
+- lint the script: `shellcheck commit-sense-via-dify.sh`
+- smoke-test the hook: stage a change, run `COMMIT_SENSE_SKIP=1 git commit` to
+  verify the hook wires correctly without invoking Dify (opt-out works)
 
 ## Security Considerations
 
