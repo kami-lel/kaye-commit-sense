@@ -15,7 +15,7 @@ commit-sense-via-dify.sh
 generate a Git commit message from the staged diff, through a Dify app.
 
 usage:
-  ./commit-sense-via-dify.sh <msg-file> [<source> [<commit>]]
+  ./commit-sense-via-dify.sh MSG_FILE [SOURCE [COMMIT]]
                             run as a prepare-commit-msg hook
   ~~ --verify               check dependencies, settings, and backend
   ~~ --help|--version       print help/version
