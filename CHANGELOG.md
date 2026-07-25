@@ -1,8 +1,9 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-Bug rewrite the tests
-Todo write demos using plan saved in CONTEXT
+BUG remove tests
+TODO write demos using plan saved in CONTEXT
+todo mpl UT
 -->
 
 [^format]
