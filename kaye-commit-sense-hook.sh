@@ -54,29 +54,6 @@ log_done() {  ##################################################################
 }
 
 
-# help  ########################################################################
-readonly USAGE_TEXT="\
-kaye-commit-sense-hook.sh
-
-generate a Git commit message from the staged diff, through a Dify app.
-
-usage:
-  ./kaye-commit-sense-hook.sh MSG_FILE [SOURCE [COMMIT]]
-                            run as a prepare-commit-msg hook
-  ~~ --verify               check dependencies, settings, and backend
-  ~~ --help|--version       print help/version
-
-environment:
-  KCC_DIFY_API_SECRET_KEY                required; the Dify Service API key
-  KCC_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
-  COMMIT_SENSE_SKIP               any non-empty value skips generation
-"
-
-
-# constants  ###################################################################
-readonly VERSION="0.1.0"
-
-
 # environment  #################################################################
 # answers one question: can this machine run at all
 readonly LOGGER_ENV="KCSHook.env"  # module logger name
@@ -362,6 +339,27 @@ write_message_file() {  ########################################################
 
 
 # Entry Point  #################################################################
+# argument dispatch and orchestration; no logic of its own
+readonly VERSION="0.1.0"
+
+readonly USAGE_TEXT="\
+kaye-commit-sense-hook.sh
+
+generate a Git commit message from the staged diff, through a Dify app.
+
+usage:
+  ./kaye-commit-sense-hook.sh MSG_FILE [SOURCE [COMMIT]]
+                            run as a prepare-commit-msg hook
+  ~~ --verify               check dependencies, settings, and backend
+  ~~ --help|--version       print help/version
+
+environment:
+  KCC_DIFY_API_SECRET_KEY         required; the Dify Service API key
+  KCC_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
+  COMMIT_SENSE_SKIP               any non-empty value skips generation
+"
+
+# checks dependencies, configuration, and the backend; writes nothing
 run_verify() {  ################################################################
     local mode
     local exit_code=0
@@ -432,36 +430,36 @@ run_hook() {  ##################################################################
 }
 
 
-# Entry Point  #################################################################
-main() {
+# a leading dash selects a mode; anything else is Git's positional contract
+main() {  ######################################################################
     local is_hook_path=false
 
-    case "${1-}" in  # ---------------------------------------------------------
+    case "${1-}" in
         --verify)
             run_verify
             return
             ;;
-        --help)  # -------------------------------------------------------------
+        --help)
             printf '%s' "${USAGE_TEXT}"
             return 0
             ;;
-        --version)  # ----------------------------------------------------------
+        --version)
             printf '%s\n' "${VERSION}"
             return 0
             ;;
-        "")  # -----------------------------------------------------------------
+        "")
             # no message file, so generation is impossible; fall to the usage
             ;;
-        --)  # explicit hook path
-            shift
+        --)
+            shift  # explicit hook path
             if (($# > 0)); then
                 is_hook_path=true
             fi
             ;;
-        -*)  # -----------------------------------------------------------------
+        -*)
             log_error "${LOGGER_ROOT}" "unknown mode: $1"
             ;;
-        *)  # ------------------------------------------------------------------
+        *)
             # implicit hook path; Git never passes a leading-dash msg-file
             is_hook_path=true
             ;;
