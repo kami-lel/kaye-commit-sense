@@ -7,6 +7,8 @@
 ################################################################################
 set -euo pipefail
 
+# FIXME cb is overused
+
 
 # logging  #####################################################################
 # the sole channel the user reads; every other module reports through it
@@ -72,10 +74,6 @@ environment:
 
 # constants  ###################################################################
 readonly VERSION="0.1.0"
-readonly DIFY_USER="user"
-
-# below Dify's 100-second blocking cutoff
-readonly REQUEST_TIMEOUT_SECONDS=90
 
 
 # environment  #################################################################
@@ -120,7 +118,17 @@ resolve_config() {  ############################################################
 }
 
 
-# json  ########################################################################
+# dify  ########################################################################
+# everything crossing the wire, and every way it can fail closed
+readonly LOGGER_DIFY="KCSHook.dify"  # module logger name
+
+# identifies the caller to the Dify app
+readonly DIFY_USER="user"
+
+# below Dify's 100-second blocking cutoff
+readonly REQUEST_TIMEOUT_SECONDS=90
+
+# wire format  =================================================================
 # builds the /chat-messages request body; jq handles all escaping, including
 # quotes, backslashes, newlines, and non-ASCII in the diff
 build_chat_request() {  ########################################################
@@ -153,10 +161,10 @@ extract_json_field() {  ########################################################
 }
 
 
-# transport  ###################################################################
+# calls  =======================================================================
 # blocking POST /chat-messages; prints the answer on stdout, fails closed on a
 # curl error, a non-2xx status, or a missing/empty answer
-call_dify_chat() {  #############################################################
+call_dify_chat() {  ############################################################
     local diff="$1"
     local body response http_status answer
 
@@ -168,7 +176,7 @@ call_dify_chat() {  ############################################################
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
-        log_error "${LOGGER_ROOT}" \
+        log_error "${LOGGER_DIFY}" \
             "request to ${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages failed"
         return 1
     fi
@@ -177,14 +185,14 @@ call_dify_chat() {  ############################################################
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        log_error "${LOGGER_ROOT}" "${KCC_DIFY_SERVICE_API_ENDPOINT}\
+        log_error "${LOGGER_DIFY}" "${KCC_DIFY_SERVICE_API_ENDPOINT}\
 /chat-messages returned HTTP ${http_status}"
         return 1
     fi
 
     answer="$(extract_answer "${response}")"
     if [[ -z "${answer}" || "${answer}" == "null" ]]; then
-        log_error "${LOGGER_ROOT}" "no answer in Dify reply"
+        log_error "${LOGGER_DIFY}" "no answer in Dify reply"
         return 1
     fi
 
@@ -194,14 +202,14 @@ call_dify_chat() {  ############################################################
 
 # GET /info; prints the raw JSON on stdout, fails closed on a curl error or a
 # non-2xx status
-call_dify_info() {  #############################################################
+call_dify_info() {  ############################################################
     local response http_status
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
         -X GET "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
-        log_error "${LOGGER_ROOT}" \
+        log_error "${LOGGER_DIFY}" \
             "request to ${KCC_DIFY_SERVICE_API_ENDPOINT}/info failed"
         return 1
     fi
@@ -210,7 +218,7 @@ call_dify_info() {  ############################################################
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        log_error "${LOGGER_ROOT}" \
+        log_error "${LOGGER_DIFY}" \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/info returned HTTP ${http_status}"
         return 1
     fi
