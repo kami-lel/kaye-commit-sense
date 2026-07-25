@@ -1,5 +1,7 @@
 # commit-sense-via-dify README
 
+<!-- Fixme rewrite README, create install & usage docs -->
+
 > 🧠 A Dify app writes your Git commit messages from the staged diff.
 
 A single Bash script that reads `git diff --cached`, sends it to a Dify app,
