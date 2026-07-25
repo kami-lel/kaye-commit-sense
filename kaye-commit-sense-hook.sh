@@ -456,6 +456,7 @@ main() {  # --------------------------------------------------------------------
         return
     fi
 
+    # BUG nothing printed when not in venv
     printf '%s' "${USAGE_TEXT}" >&2
     return 2
 }
