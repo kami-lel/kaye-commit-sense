@@ -25,7 +25,6 @@ Implementation is complete. All components are functional and tested.
 | single script carrying both modes | confirmed |
 | leading-dash mode dispatch | confirmed |
 | `bin/` placement | dropped — one file needs no directory |
-| `verify-commit-sense-via-dify.sh` name | dropped — folded into `--verify` |
 | `jq` as a dependency | confirmed — required; see [JSON Handling](#json-handling) |
 
 ## Dify Backend
@@ -52,9 +51,9 @@ Configuration arrives through the environment: `DIFY_API_KEY`,
 
 ## Components
 
-The project ships as one file, `commit-sense-via-dify.sh`, carrying both the
+The project ships as one file, `kaye-commit-sense-hook.sh`, carrying both the
 hook entry and the preflight checker. A two-script split was considered —
-a generator plus a separate `verify-commit-sense-via-dify.sh` — but rejected:
+a generator plus a separate `verify-kaye-commit-sense-hook.sh` — but rejected:
 the two would share roughly 80% of their code (`resolve_config`,
 `check_dependencies`, the transport, the `stderr` reporting), and the split's
 only structural benefit — a verifier that cannot physically write a message —

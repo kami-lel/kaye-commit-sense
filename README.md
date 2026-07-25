@@ -22,15 +22,15 @@ Ensure `jq`, `curl`, `git`, and `bash` are installed and in your `PATH`.
 
 ### Installation
 
-1. Copy `commit-sense-via-dify.sh` to your repository and make it executable:
+1. Copy `kaye-commit-sense-hook.sh` to your repository and make it executable:
    ```bash
-   cp commit-sense-via-dify.sh /path/to/your/repo/
-   chmod +x /path/to/your/repo/commit-sense-via-dify.sh
+   cp kaye-commit-sense-hook.sh /path/to/your/repo/
+   chmod +x /path/to/your/repo/kaye-commit-sense-hook.sh
    ```
 
 2. Install the hook into `.git/hooks/`:
    ```bash
-   ln -s ../../commit-sense-via-dify.sh /path/to/your/repo/.git/hooks/prepare-commit-msg
+   ln -s ../../kaye-commit-sense-hook.sh /path/to/your/repo/.git/hooks/prepare-commit-msg
    ```
 
 3. Export your Dify credentials in your shell environment or in `.bashrc`:
@@ -43,7 +43,7 @@ Ensure `jq`, `curl`, `git`, and `bash` are installed and in your `PATH`.
 
 Run the preflight check to confirm everything is wired correctly:
 ```bash
-./commit-sense-via-dify.sh --verify
+./kaye-commit-sense-hook.sh --verify
 ```
 
 This checks that dependencies are present, configuration is set, and the Dify
@@ -68,12 +68,12 @@ COMMIT_SENSE_SKIP=1 git commit
 
 To test the hook manually:
 ```bash
-./commit-sense-via-dify.sh /tmp/test-message "template"
+./kaye-commit-sense-hook.sh /tmp/test-message "template"
 ```
 
 For help:
 ```bash
-./commit-sense-via-dify.sh --help
+./kaye-commit-sense-hook.sh --help
 ```
 
 ## Docs

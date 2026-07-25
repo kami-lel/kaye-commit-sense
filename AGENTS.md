@@ -5,14 +5,14 @@ alwaysApply: true
 
 # commit-sense-via-dify AGENTS
 
-The entire project is a single Bash script, `commit-sense-via-dify.sh`, that
+The entire project is a single Bash script, `kaye-commit-sense-hook.sh`, that
 generates Git commit messages from the staged diff via a Dify app. See
 [CONTEXT.md](CONTEXT.md) for design and data flow.
 
 
 ## Scope
 
-- keep all logic in one file — `commit-sense-via-dify.sh`
+- keep all logic in one file — `kaye-commit-sense-hook.sh`
 - add no runtime dependencies beyond `git`, `curl`, and a POSIX shell
 - target **Bash**, invoked as a Git commit hook
 
@@ -26,8 +26,8 @@ generates Git commit messages from the staged diff via a Dify app. See
 
 ## Testing Instructions
 
-- run unit tests: `bash tests/test-commit-sense-via-dify.sh`
-- lint the script: `shellcheck commit-sense-via-dify.sh`
+- run unit tests: `bash tests/test-kaye-commit-sense-hook.sh`
+- lint the script: `shellcheck kaye-commit-sense-hook.sh`
 - smoke-test the hook: stage a change, run `COMMIT_SENSE_SKIP=1 git commit` to
   verify the hook wires correctly without invoking Dify (opt-out works)
 
