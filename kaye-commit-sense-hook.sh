@@ -229,7 +229,7 @@ spinner() {  # -----------------------------------------------------------------
 
 # Public API  ##################################################################
 # the four stages of a run, each callable on its own; this is the interface a
-# test or a demo sources
+# demo sources
 readonly LOGGER_STAGES="KCSHook.stages"  # module logger name
 
 # decides whether generation should happen at all, given Git's $2 source
@@ -461,7 +461,7 @@ main() {  # --------------------------------------------------------------------
     return 2
 }
 
-# run only when executed, so the tests can source this file
+# run only when executed, so a demo can source this file
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi
