@@ -3,7 +3,7 @@
 <!--
 FIXME split hook script by modules
 Bug rewrite the tests
-Todo write demos using plan saved in CONTEXT
+TODO write demos using plan saved in CONTEXT
 -->
 
 [^format]

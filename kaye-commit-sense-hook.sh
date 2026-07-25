@@ -8,13 +8,16 @@
 set -euo pipefail
 
 
-################################################################################
-# kamilog_shim
-# lets scripts call `kamilog` safely even when it is not installed
-################################################################################
-_KAMILOG_BIN=$(type -P kamilog 2>/dev/null)
+# logging  ####################################################################
+# the sole channel the user reads; every other module reports through it
+readonly LOGGER_ROOT="KCSHook"  # root logger name
 
-kamilog() {
+# lets scripts call `kamilog` safely even when it is not installed
+# `|| true` is required: `type -P` fails when absent, which `set -e` would
+# otherwise treat as fatal — the exact case the shim exists to survive
+_KAMILOG_BIN=$(type -P kamilog 2>/dev/null || true)
+
+kamilog() {  ###################################################################
     if [ -n "$_KAMILOG_BIN" ]; then
         "$_KAMILOG_BIN" "$@"
         return
@@ -22,7 +25,30 @@ kamilog() {
     # no bin found, pass stdin through as-is
     cat
 }
-# END of kamilog_shim  #########################################################
+
+
+# reports a failure under the caller's logger name
+log_error() {  #################################################################
+    local logger_name="$1"
+    local message="$2"
+    printf '%s\n' "${message}" | kamilog logger error "${logger_name}"
+}
+
+
+# reports progress under the caller's logger name
+log_info() {  ##################################################################
+    local logger_name="$1"
+    local message="$2"
+    printf '%s\n' "${message}" | kamilog logger info "${logger_name}"
+}
+
+
+# reports a completed run under the caller's logger name
+log_done() {  ##################################################################
+    local logger_name="$1"
+    local message="$2"
+    printf '%s\n' "${message}" | kamilog logger "done" "${logger_name}"
+}
 
 
 # help  ########################################################################
@@ -47,7 +73,6 @@ environment:
 # constants  ###################################################################
 readonly VERSION="0.1.0"
 readonly DIFY_USER="user"
-readonly LOGGER_NAME="KCSHook"  # Kaye Commit Sense Hook
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
 # below Dify's 100-second blocking cutoff
@@ -66,8 +91,7 @@ check_dependencies() {  ########################################################
     done
 
     if ((${#missing[@]} > 0)); then
-        printf 'missing command: %s\n' \
-            "${missing[*]}" | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" "missing command: ${missing[*]}"
         return 1
     fi
 }
@@ -78,15 +102,13 @@ check_dependencies() {  ########################################################
 resolve_config() {  ############################################################
     KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
     if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
-        printf 'KCC_DIFY_API_SECRET_KEY is not set\n' \
-            | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" "KCC_DIFY_API_SECRET_KEY is not set"
         return 1
     fi
 
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
-        printf 'KCC_DIFY_SERVICE_API_ENDPOINT is not set\n' \
-            | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" "KCC_DIFY_SERVICE_API_ENDPOINT is not set"
         return 1
     fi
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT%/}"
@@ -141,9 +163,8 @@ call_dify_chat() {  ############################################################
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
-        printf 'request to %s failed\n' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
-            | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" \
+            "request to ${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages failed"
         return 1
     fi
 
@@ -151,16 +172,14 @@ call_dify_chat() {  ############################################################
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf '%s returned HTTP %s\n' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" "${http_status}" \
-            | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" \
+            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages returned HTTP ${http_status}"
         return 1
     fi
 
     answer="$(extract_answer "${response}")"
     if [[ -z "${answer}" || "${answer}" == "null" ]]; then
-        printf 'no answer in Dify reply\n' \
-            | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" "no answer in Dify reply"
         return 1
     fi
 
@@ -177,8 +196,8 @@ call_dify_info() {  ############################################################
         -X GET "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
-        printf 'request to %s failed\n' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" \
+            "request to ${KCC_DIFY_SERVICE_API_ENDPOINT}/info failed"
         return 1
     fi
 
@@ -186,9 +205,8 @@ call_dify_info() {  ############################################################
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf '%s returned HTTP %s\n' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" \
-            | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" \
+            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info returned HTTP ${http_status}"
         return 1
     fi
 
@@ -237,8 +255,7 @@ run_verify() {  ################################################################
     local mode
     local exit_code=0
 
-    printf 'verifying environment...\n' \
-        | kamilog logger info "${LOGGER_NAME}"
+    log_info "${LOGGER_ROOT}" "verifying environment..."
 
     # check dependencies  ========================================================
     if ! check_dependencies; then
@@ -247,8 +264,7 @@ run_verify() {  ################################################################
 
     # resolve configuration  ====================================================
     if ! resolve_config 2>/dev/null; then
-        printf 'configuration incomplete\n' \
-            | kamilog logger error "${LOGGER_NAME}"
+        log_error "${LOGGER_ROOT}" "configuration incomplete"
         exit_code=1
     fi
 
@@ -263,15 +279,14 @@ run_verify() {  ################################################################
     else
         mode="$(extract_json_field "${info}" "mode")"
         if [[ "${mode}" != "advanced-chat" ]]; then
-            printf 'app mode is %s, expected advanced-chat\n' \
-                "${mode}" | kamilog logger error "${LOGGER_NAME}"
+            log_error "${LOGGER_ROOT}" \
+                "app mode is ${mode}, expected advanced-chat"
             exit_code=1
         fi
     fi
 
     if ((exit_code == 0)); then
-        printf 'all checks passed\n' \
-            | kamilog logger info "${LOGGER_NAME}"
+        log_info "${LOGGER_ROOT}" "all checks passed"
     fi
 
     return "${exit_code}"
@@ -332,7 +347,7 @@ run_hook() {
         return 1
     fi
 
-    printf 'done\n' | kamilog logger "done" "${LOGGER_NAME}"
+    log_done "${LOGGER_ROOT}" "done"
     return 0
 }
 
@@ -364,8 +379,7 @@ main() {
             fi
             ;;
         -*)  # -----------------------------------------------------------------
-            printf 'unknown mode: %s\n' "$1" \
-                | kamilog logger error "${LOGGER_NAME}"
+            log_error "${LOGGER_ROOT}" "unknown mode: $1"
             ;;
         *)  # ------------------------------------------------------------------
             # implicit hook path; Git never passes a leading-dash msg-file
