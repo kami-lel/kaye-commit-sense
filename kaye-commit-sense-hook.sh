@@ -8,6 +8,7 @@
 set -euo pipefail
 
 # FIXME cb is overused
+# BUG kamilog is gone
 
 
 # logging  #####################################################################
@@ -227,10 +228,15 @@ call_dify_info() {  ############################################################
 }
 
 
-# spinner  ####################################################################
-# simple spinner drawn on stderr; call with "start", then "stop"
+# spinner  #####################################################################
+# liveness during the blocking call; owns the only background process here
+# shellcheck disable=SC2034  # declared for symmetry; nothing logs from here yet
+readonly LOGGER_SPINNER="KCSHook.spinner"  # module logger name
+
+# tracks the background drawing process; empty means no spinner running
 _spinner_pid=""
 
+# simple spinner drawn on stderr; call with "start", then "stop"
 spinner() {  ###################################################################
     local action="$1"
     local frames=("|" "/" "-" "\\")
