@@ -1,7 +1,6 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-BUG remove tests
 TODO write demos using plan saved in CONTEXT
 todo mpl UT
 -->
@@ -28,16 +27,15 @@ todo mpl UT
 - hook gate checks: skip generation for COMMIT_SENSE_SKIP, reused commits, and empty diffs
 - message generation: blocking call to Dify with stderr spinner feedback
 - atomic message write: prepend generated answer via temporary file and atomic move
-- comprehensive test suite: 14 tests covering JSON helpers and all gate conditions
 - setup and usage documentation in `README.md`
 - environment variable verification in `--verify` mode
-- sample diff fixtures under `tests/diffs/` for cache-module test cases
+- sample diff fixtures under `demos/diffs/` for future demo scripts
 - optional `kamilog` integration: structured `info`/`error` logging throughout
   the hook, degrading to a no-op shim when `kamilog` is not installed
 - `kamilog` "done" log line on a successful hook run
 - reusable run stages extracted from `run_hook`: `is_generation_allowed`,
   `read_staged_diff`, `generate_message`, `generate_message_from_file`, and
-  `write_message_file`, each callable on its own by a future example or test
+  `write_message_file`, each callable on its own by a future demo
 - `generate_message_from_file`: turns a diff already saved to a file into a
   commit message, without a staged index
 
@@ -63,6 +61,10 @@ todo mpl UT
 ### Deprecated
 
 ### Removed
+
+- unit-test suite (`tests/test-commit-sense-via-dify.sh`) and its `tests/`
+  directory; the hook script's public stage functions remain available for a
+  future demo to source
 
 ### Fixed
 

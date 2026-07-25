@@ -30,10 +30,11 @@ generates Git commit messages from the staged diff via a Dify app. See
 
 ## Testing Instructions
 
-- run unit tests: `bash tests/test-commit-sense-via-dify.sh`
 - lint the script: `shellcheck kaye-commit-sense-hook.sh`
 - smoke-test the hook: stage a change, run `COMMIT_SENSE_SKIP=1 git commit` to
   verify the hook wires correctly without invoking Dify (opt-out works)
+- demo fixtures live under `demos/diffs/`, sourced by the hook script's public
+  stage functions rather than exercised through a unit-test suite
 
 ## Security Considerations
 

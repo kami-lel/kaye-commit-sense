@@ -15,7 +15,7 @@ remember or trigger it by hand.
 
 ## Design Status
 
-Implementation is complete. All components are functional and tested.
+Implementation is complete. All components are functional.
 
 | Decision | State |
 | --- | --- |
@@ -100,21 +100,24 @@ conflates behavior selection with the settings channel already used by
 implicit and the hook path is the special case, which does not match actual
 usage frequency.
 
-## Partially Implemented: Stage Split and Fixture Example
+## Partially Implemented: Stage Split and Demo Script
 
-Status: **stage split done; fixture example, test repoint, and README note
-still open.**
+Status: **stage split done; demo script and README note still open.**
 
 `run_hook` welded five concerns into one function — the skip gates, capturing
 `git diff --cached`, resolving configuration, calling Dify, and rewriting the
 message file. Nothing in the script could turn *a diff already in hand* into
-*a commit message on stdout*, so the fixtures under `tests/diffs/` could not
+*a commit message on stdout*, so the fixtures under `demos/diffs/` could not
 be exercised end to end without staging them into a real repository.
 
-The intended outcome is a runnable example that feeds
-`tests/diffs/single-reorder.diff` through the real Dify backend and prints the
-generated message to stdout. The example sources the script rather than adding
-a command-line mode, since the sourced-versus-executed guard around `main`
+The unit-test suite that once exercised the JSON helpers and gate conditions
+was removed; the fixtures under `demos/diffs/` now exist solely to feed the
+demo script described below, not a test runner.
+
+The intended outcome is a runnable demo that feeds
+`demos/diffs/single-reorder.diff` through the real Dify backend and prints the
+generated message to stdout. The demo sources the script rather than adding a
+command-line mode, since the sourced-versus-executed guard around `main`
 already supports that and no new public interface is wanted.
 
 ### Stages
@@ -130,39 +133,36 @@ already supports that and no new public interface is wanted.
 | `generate_message_from_file DIFF_FILE` | reads a diff from a file, then hands it to `generate_message` |
 | `write_message_file ANSWER MSG_FILE` | the `mktemp` / prepend / `mv` sequence |
 
-`generate_message` is the reusable seam — the one an example, a fixture run, or
-a future batch driver can call without a staged index or a message file.
+`generate_message` is the reusable seam — the one a demo, a fixture run, or a
+future batch driver can call without a staged index or a message file.
 `generate_message_from_file` extends that seam to a diff already saved on
-disk, which is the shape the `tests/diffs/` fixtures are in.
+disk, which is the shape the `demos/diffs/` fixtures are in.
 `resolve_config`, `call_dify_chat`, and `spinner` are reused untouched; the
-split is pure extraction. The skip semantics the test suite asserts (exit `0`
-on every skip path) survive it.
+split is pure extraction.
 
 ### Steps
 
 1. split `run_hook` into the stages above — `kaye-commit-sense-hook.sh` — done
 2. rebuild `run_hook` as orchestration over them, leaving `main` and the
    argument-dispatch table untouched — `kaye-commit-sense-hook.sh` — done
-3. add `examples/single-reorder-demo.sh` — resolves the repository root from
+3. remove the unit-test suite and relocate its fixtures to `demos/diffs/` —
+   done
+4. add `demos/single-reorder-demo.sh` — resolves the repository root from
    `BASH_SOURCE`, sources the hook script, reads the fixture, calls
    `generate_message`, prints the message on stdout, exits non-zero on
    failure — still open
-4. repoint `tests/test-commit-sense-via-dify.sh` at
-   `../kaye-commit-sense-hook.sh`; it still sources the pre-rename
-   `commit-sense-via-dify.sh` and therefore cannot run at all — still open
-5. note the example in `README.md` and record the change under `[Unreleased]`
-   in `CHANGELOG.md` — still open
+5. note the demo in `README.md` and record the change under `[Unreleased]` in
+   `CHANGELOG.md` — still open
 
 ### Verification
 
-- `shellcheck kaye-commit-sense-hook.sh examples/single-reorder-demo.sh`
-- `bash tests/test-commit-sense-via-dify.sh` — passes once Step 4 lands
-- with credentials exported, `./examples/single-reorder-demo.sh` prints a
-  commit message on stdout and exits `0`; without them it fails non-zero with
-  a readable error and prints nothing on stdout
+- `shellcheck kaye-commit-sense-hook.sh demos/single-reorder-demo.sh`
+- with credentials exported, `./demos/single-reorder-demo.sh` prints a commit
+  message on stdout and exits `0`; without them it fails non-zero with a
+  readable error and prints nothing on stdout
 - `COMMIT_SENSE_SKIP=1 git commit` still short-circuits
 
-The example requires `KCC_DIFY_API_SECRET_KEY` and
+The demo requires `KCC_DIFY_API_SECRET_KEY` and
 `KCC_DIFY_SERVICE_API_ENDPOINT`, since it performs a real Dify call.
 
 ## Data Flow
@@ -258,14 +258,14 @@ command to confirm the environment is ready before relying on the hook.
 
 ## Implementation Complete
 
-All components are now implemented and tested:
+All components are now implemented:
 
 - **`--verify` preflight** ✓ — checks dependencies, resolves configuration,
   calls `GET /info`, and confirms the app mode is `advanced-chat`. Reports
   each check on stderr and exits non-zero on first failure.
 - **hook gate** ✓ — skips generation when `COMMIT_SENSE_SKIP` is set, when
   `$2` indicates reuse (message/merge/squash/commit), or when the staged diff
-  is empty. Test suite covers all skip conditions.
+  is empty.
 - **generation and message write** ✓ — captures staged diff, shows stderr
   spinner during the blocking call (managed via trap on all exit paths),
   prepends the answer above existing message via atomic temp-file-and-mv.
@@ -276,8 +276,8 @@ All components are now implemented and tested:
 - **stage split** ✓ — `run_hook` reduced to orchestration over
   `is_generation_allowed`, `read_staged_diff`, `generate_message`,
   `generate_message_from_file`, and `write_message_file`; see
-  [Partially Implemented: Stage Split and Fixture Example](#partially-implemented-stage-split-and-fixture-example)
-  for the example and test work still open.
+  [Partially Implemented: Stage Split and Demo Script](#partially-implemented-stage-split-and-demo-script)
+  for the demo work still open.
 - **per-module logging** ✓ — each script section owns its own `kamilog`
   logger name (`KCSHook.env`, `KCSHook.dify`, `KCSHook.spinner`,
   `KCSHook.stages`, `KCSHook`) in place of one flat logger name.
