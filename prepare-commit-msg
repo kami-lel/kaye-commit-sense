@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 ################################################################################
-# prepare-commit-msg.sh
+# prepare-commit-msg
 #
 # stub Git hook; install as `prepare-commit-msg` alongside
 # kaye-commit-sense-hook.sh, which it forwards to
