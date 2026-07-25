@@ -1,0 +1,264 @@
+diff --git a/src/cache/compaction.py b/src/cache/compaction.py
+index 7d2e918..1a4c063 100644
+--- a/src/cache/compaction.py
++++ b/src/cache/compaction.py
+@@ -18,7 +18,7 @@ def sweep(index, tombstones):
+
+
+ def rewrite(path, index):
+-    # FIXME: partial writes leave the index unreadable
++    # BUG: partial writes leave the index unreadable
+     tmp = path.with_suffix(".tmp")
+     with tmp.open("wb") as handle:
+         for key, (offset, length) in index.items():
+@@ -33,7 +33,6 @@ def rewrite(path, index):
+
+
+ def verify(path):
+-    # TODO: compare checksums instead of byte length
+     expected = path.stat().st_size
+     actual = sum(len(record) for record in _records(path))
+     return expected == actual
+diff --git a/src/cache/config.py b/src/cache/config.py
+index c4a0b17..f9d3e28 100644
+--- a/src/cache/config.py
++++ b/src/cache/config.py
+@@ -1,12 +1,14 @@
+ import os
++
+ from pathlib import Path
+
++
+ DEFAULT_TTL = 300
+ DEFAULT_CAPACITY = 1024
+
++
+ def load(env=None):
+     env = env or os.environ
+-    return {
+-      "ttl": int(env.get("CACHE_TTL", DEFAULT_TTL)),
+-      "capacity": int(env.get("CACHE_CAPACITY", DEFAULT_CAPACITY)),
+-      "root": Path(env.get("CACHE_ROOT", ".cache")),
+-    }
++    return {
++        "ttl": int(env.get("CACHE_TTL", DEFAULT_TTL)),
++        "capacity": int(env.get("CACHE_CAPACITY", DEFAULT_CAPACITY)),
++        "root": Path(env.get("CACHE_ROOT", ".cache")),
++    }
+diff --git a/src/cache/eviction.py b/src/cache/eviction.py
+index 6b81f04..2ce9a75 100644
+--- a/src/cache/eviction.py
++++ b/src/cache/eviction.py
+@@ -1,19 +1,10 @@
++import heapq
++import itertools
+ import threading
+
+
+-class _Node:
+-    __slots__ = ("key", "prev", "next")
+-
+-    def __init__(self, key):
+-        self.key = key
+-        self.prev = None
+-        self.next = None
+-
+-
+ class EvictionPolicy:
++    """Least-frequently-used policy backed by a lazy binary heap."""
++
+     def __init__(self, capacity):
+         self.capacity = capacity
+         self._lock = threading.Lock()
+-        self._nodes = {}
+-        self._head = None
+-        self._tail = None
++        self._counter = itertools.count()
++        self._ranks = {}
++        self._heap = []
+
+-    def _unlink(self, node):
+-        if node.prev is not None:
+-            node.prev.next = node.next
+-        else:
+-            self._head = node.next
+-        if node.next is not None:
+-            node.next.prev = node.prev
+-        else:
+-            self._tail = node.prev
+-        node.prev = None
+-        node.next = None
++    def _rank(self, key):
++        hits, _ = self._ranks.get(key, (0, 0))
++        return hits + 1, next(self._counter)
+
+-    def _push_front(self, node):
+-        node.next = self._head
+-        if self._head is not None:
+-            self._head.prev = node
+-        self._head = node
+-        if self._tail is None:
+-            self._tail = node
++    def _compact(self):
++        live = [
++            (hits, seq, key)
++            for hits, seq, key in self._heap
++            if self._ranks.get(key) == (hits, seq)
++        ]
++        heapq.heapify(live)
++        self._heap = live
+
+     def touch(self, key):
+         with self._lock:
+-            node = self._nodes.get(key)
+-            if node is None:
+-                node = _Node(key)
+-                self._nodes[key] = node
+-            else:
+-                self._unlink(node)
+-            self._push_front(node)
++            hits, seq = self._rank(key)
++            self._ranks[key] = (hits, seq)
++            heapq.heappush(self._heap, (hits, seq, key))
++            if len(self._heap) > 2 * len(self._ranks):
++                self._compact()
+
+     def forget(self, key):
+         with self._lock:
+-            node = self._nodes.pop(key, None)
+-            if node is not None:
+-                self._unlink(node)
++            self._ranks.pop(key, None)
+
+     def victims(self):
+         with self._lock:
+             evicted = []
+-            while len(self._nodes) > self.capacity:
+-                node = self._tail
+-                if node is None:
+-                    break
+-                self._unlink(node)
+-                del self._nodes[node.key]
+-                evicted.append(node.key)
++            while len(self._ranks) > self.capacity:
++                hits, seq, key = heapq.heappop(self._heap)
++                if self._ranks.get(key) != (hits, seq):
++                    continue
++                del self._ranks[key]
++                evicted.append(key)
+             return evicted
++
++    def __len__(self):
++        with self._lock:
++            return len(self._ranks)
+diff --git a/src/cache/parser.py b/src/cache/io/parser.py
+similarity index 100%
+rename from src/cache/parser.py
+rename to src/cache/io/parser.py
+diff --git a/src/cache/keys.py b/src/cache/keys.py
+index 3a90d55..b17e4c2 100644
+--- a/src/cache/keys.py
++++ b/src/cache/keys.py
+@@ -1,16 +1,16 @@
+ import hashlib
+
+
+ def normalize(raw):
+-    parts = raw.strip().split("/")
+-    parts = [p for p in parts if p]
+-    return "/".join(parts).lower()
++    segments = [segment for segment in raw.strip().split("/") if segment]
++    return "/".join(segment.lower() for segment in segments)
+
+
+ def digest(raw):
+-    key = normalize(raw)
+-    hasher = hashlib.sha1()
+-    hasher.update(key.encode("utf-8"))
+-    return hasher.hexdigest()[:16]
++    encoded = normalize(raw).encode("utf-8")
++    return hashlib.blake2b(encoded, digest_size=8).hexdigest()
+
+
+ def is_valid(raw):
+-    return bool(raw) and "\t" not in raw and "\n" not in raw
++    if not raw:
++        return False
++    return not any(char in raw for char in ("\t", "\n", "\r"))
+diff --git a/src/cache/metrics.py b/src/cache/metrics.py
+new file mode 100644
+index 0000000..8e5b170
+--- /dev/null
++++ b/src/cache/metrics.py
+@@ -0,0 +1,24 @@
++import threading
++from collections import Counter
++
++
++class Metrics:
++    """Thread-safe counters for hits, misses, and evictions."""
++
++    def __init__(self):
++        self._lock = threading.Lock()
++        self._counts = Counter()
++
++    def record(self, name, amount=1):
++        with self._lock:
++            self._counts[name] += amount
++
++    def snapshot(self):
++        with self._lock:
++            return dict(self._counts)
++
++    def hit_rate(self):
++        counts = self.snapshot()
++        total = counts.get("hit", 0) + counts.get("miss", 0)
++        if total == 0:
++            return 0.0
++        return counts.get("hit", 0) / total
+diff --git a/src/cache/store.py b/src/cache/store.py
+index a71f083..d5c9b46 100644
+--- a/src/cache/store.py
++++ b/src/cache/store.py
+@@ -8,19 +8,13 @@ class Store:
+
+     def put(self, key, value):
+-        self._data[key] = (value, time.monotonic())
++        self._data[key] = (value, time.monotonic() + self.ttl)
+
+     def get(self, key):
+-        entry = self._data.get(key)
+-        if entry is None:
+-            return None
+-        value, inserted_at = entry
+-        age = time.monotonic() - inserted_at
+-        if age > self.ttl:
+-            del self._data[key]
+-            return None
+-        return value
++        value, expires_at = self._data.get(key, (None, 0))
++        if time.monotonic() >= expires_at:
++            self._data.pop(key, None)
++            return None
++        return value
+
+     def drop(self, key):
+         self._data.pop(key, None)
+diff --git a/tests/fixtures/index.db b/tests/fixtures/index.db
+index 5c1a7d3..e08b4f9 100644
+Binary files a/tests/fixtures/index.db and b/tests/fixtures/index.db differ
+diff --git a/tests/test_cache.py b/tests/test_store.py
+similarity index 97%
+rename from tests/test_cache.py
+rename to tests/test_store.py
+index d40b8a6..71c9f32 100644
+--- a/tests/test_cache.py
++++ b/tests/test_store.py
+@@ -1,6 +1,6 @@
+ import pytest
+
+-from cache import Store
++from cache.store import Store
+
+
+ @pytest.fixture
