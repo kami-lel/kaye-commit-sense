@@ -21,16 +21,15 @@ usage:
   ~~ --help|--version       print help/version
 
 environment:
-  DIFY_API_KEY                    required; the Dify Service API key
-  DIFY_BASE_URL                   required; the Dify Service API address
-  DIFY_USER                       optional; the author reported to Dify
+  KCC_DIFY_API_SECRET_KEY                required; the Dify Service API key
+  KCC_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
   COMMIT_SENSE_SKIP               any non-empty value skips generation
 "
 
 
 # constants  ###################################################################
 readonly VERSION="0.1.0"
-readonly DEFAULT_USER="user"
+readonly DIFY_USER="user"
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
 # below Dify's 100-second blocking cutoff
@@ -56,22 +55,22 @@ check_dependencies() {  ########################################################
 }
 
 
-# fills DIFY_API_KEY, DIFY_BASE_URL, DIFY_USER; the key is never printed
+# fills KCC_DIFY_API_SECRET_KEY and KCC_DIFY_SERVICE_API_ENDPOINT;
+# the key is never printed
 resolve_config() {  ############################################################
-    DIFY_API_KEY="${DIFY_API_KEY-}"
-    if [[ -z "${DIFY_API_KEY}" ]]; then
-        printf 'commit-sense-via-dify.sh: error: DIFY_API_KEY is not set\n' >&2
+    KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
+    if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
+        printf 'commit-sense-via-dify.sh: error: KCC_DIFY_API_SECRET_KEY is not set\n' \
+            >&2
         return 1
     fi
 
-    DIFY_BASE_URL="${DIFY_BASE_URL-}"
-    if [[ -z "${DIFY_BASE_URL}" ]]; then
-        printf 'commit-sense-via-dify.sh: error: DIFY_BASE_URL is not set\n' >&2
+    KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
+    if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
+        printf 'commit-sense-via-dify.sh: error: KCC_DIFY_SERVICE_API_ENDPOINT is not set\n' >&2
         return 1
     fi
-    DIFY_BASE_URL="${DIFY_BASE_URL%/}"  # drop a trailing slash
-
-    DIFY_USER="${DIFY_USER:-${DEFAULT_USER}}"
+    KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT%/}"
 }
 
 
@@ -118,13 +117,13 @@ call_dify_chat() {  ############################################################
     body="$(build_chat_request "${diff}" "${DIFY_USER}")"
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
-        -X POST "${DIFY_BASE_URL}/chat-messages" \
-        -H "Authorization: Bearer ${DIFY_API_KEY}" \
+        -X POST "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
+        -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
         printf 'commit-sense-via-dify.sh: error: request to %s failed\n' \
-            "${DIFY_BASE_URL}/chat-messages" >&2
+            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" >&2
         return 1
     fi
 
@@ -133,7 +132,7 @@ call_dify_chat() {  ############################################################
 
     if [[ "${http_status}" != 2* ]]; then
         printf 'commit-sense-via-dify.sh: error: %s returned HTTP %s\n' \
-            "${DIFY_BASE_URL}/chat-messages" "${http_status}" >&2
+            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" "${http_status}" >&2
         return 1
     fi
 
@@ -153,11 +152,11 @@ call_dify_info() {  ############################################################
     local response http_status
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
-        -X GET "${DIFY_BASE_URL}/info" \
-        -H "Authorization: Bearer ${DIFY_API_KEY}" \
+        -X GET "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
+        -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
         printf 'commit-sense-via-dify.sh: error: request to %s failed\n' \
-            "${DIFY_BASE_URL}/info" >&2
+            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" >&2
         return 1
     fi
 
@@ -166,7 +165,7 @@ call_dify_info() {  ############################################################
 
     if [[ "${http_status}" != 2* ]]; then
         printf 'commit-sense-via-dify.sh: error: %s returned HTTP %s\n' \
-            "${DIFY_BASE_URL}/info" "${http_status}" >&2
+            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" >&2
         return 1
     fi
 
