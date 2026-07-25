@@ -31,6 +31,10 @@ Todo write demos using plan saved in CONTEXT
 - comprehensive test suite: 14 tests covering JSON helpers and all gate conditions
 - setup and usage documentation in `README.md`
 - environment variable verification in `--verify` mode
+- sample diff fixtures under `tests/diffs/` for cache-module test cases
+- optional `kamilog` integration: structured `info`/`error` logging throughout
+  the hook, degrading to a no-op shim when `kamilog` is not installed
+- `kamilog` "done" log line on a successful hook run
 
 ### Changed
 
@@ -38,6 +42,8 @@ Todo write demos using plan saved in CONTEXT
   `KCC_DIFY_SERVICE_API_ENDPOINT` per KamiCommitContext naming convention
 - user identifier hardcoded to `"user"` (no longer configurable via environment)
 - updated all documentation to reflect completed implementation
+- renamed `prepare-commit-msg.sh` to `prepare-commit-msg` to match its
+  installed hook name
 
 ### Deprecated
 
