@@ -49,6 +49,15 @@ Run the preflight check to confirm everything is wired correctly:
 This checks that dependencies are present, configuration is set, and the Dify
 app is reachable and configured as `advanced-chat` mode.
 
+### Optional install
+
+- [`kamilog`](https://github.com/kami-lel/kamilog) — a logging utility. When
+  present on `PATH`, the hook routes its log lines through it; otherwise the
+  hook falls back to plain output.
+  ```bash
+  pip install git+https://github.com/kami-lel/kamilog.git
+  ```
+
 ## Usage
 
 The hook runs automatically on `git commit`. To skip generation for a single

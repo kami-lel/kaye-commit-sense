@@ -1,5 +1,7 @@
 # commit-sense-via-dify CHANGELOG
 
+<!-- Todo add a hook stub -->
+
 [^format]
 
 
