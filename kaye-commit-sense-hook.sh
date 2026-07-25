@@ -270,19 +270,109 @@ spinner() {  ###################################################################
 }
 
 
+# Public API  ##################################################################
+# the four stages of a run, each callable on its own; this is the interface a
+# test or a demo sources
+readonly LOGGER_STAGES="KCSHook.stages"  # module logger name
+
+# decides whether generation should happen at all, given Git's $2 source
+# argument; 0 means proceed, 1 means skip
+is_generation_allowed() {  #####################################################
+    local source="${1-}"
+
+    if [[ -n "${COMMIT_SENSE_SKIP-}" ]]; then
+        return 1  # explicit opt-out
+    fi
+
+    case "${source}" in
+        message|merge|squash|commit)
+            return 1  # Git supplied a message already
+            ;;
+    esac
+
+    return 0
+}
+
+
+# prints the staged diff on stdout; empty output means nothing is staged
+read_staged_diff() {  ##########################################################
+    git diff --cached
+}
+
+
+# turns a diff already in hand into a commit message on stdout; the reusable
+# seam, needing neither a staged index nor a message file
+generate_message() {  ##########################################################
+    local diff="$1"
+    local answer
+
+    if ! resolve_config; then
+        return 1
+    fi
+
+    spinner start
+    trap 'spinner stop' RETURN INT TERM
+
+    if ! answer="$(call_dify_chat "${diff}")"; then
+        return 1
+    fi
+    spinner stop
+
+    printf '%s' "${answer}"
+}
+
+
+# reads a diff from a file and hands it to generate_message
+generate_message_from_file() {  ################################################
+    local diff_file="$1"
+    local diff
+
+    if [[ ! -r "${diff_file}" ]]; then
+        log_error "${LOGGER_STAGES}" "cannot read diff file: ${diff_file}"
+        return 1
+    fi
+
+    diff="$(<"${diff_file}")"
+    if [[ -z "${diff}" ]]; then
+        log_error "${LOGGER_STAGES}" "diff file is empty: ${diff_file}"
+        return 1
+    fi
+
+    generate_message "${diff}"
+}
+
+
+# prepends the answer above the existing message; the temporary file makes the
+# replacement atomic, so an interrupted run never leaves a half-written message
+write_message_file() {  ########################################################
+    local answer="$1"
+    local msg_file="$2"
+    local tmp_file
+
+    tmp_file="$(mktemp)" || return 1
+    trap 'rm -f "${tmp_file}"' RETURN
+
+    {
+        printf '%s\n' "${answer}"
+        cat "${msg_file}"
+    } >"${tmp_file}" || return 1
+
+    mv "${tmp_file}" "${msg_file}"
+}
+
+
+# Entry Point  #################################################################
 run_verify() {  ################################################################
     local mode
     local exit_code=0
 
     log_info "${LOGGER_ROOT}" "verifying environment..."
 
-    # check dependencies  ========================================================
     if ! check_dependencies; then
         exit_code=1
     fi
 
-    # resolve configuration  ====================================================
-    if ! resolve_config 2>/dev/null; then
+    if ! resolve_config; then
         log_error "${LOGGER_ROOT}" "configuration incomplete"
         exit_code=1
     fi
@@ -291,7 +381,6 @@ run_verify() {  ################################################################
         return "${exit_code}"
     fi
 
-    # call GET /info and check mode  =============================================
     local info
     if ! info="$(call_dify_info)"; then
         exit_code=1
@@ -312,57 +401,29 @@ run_verify() {  ################################################################
 }
 
 
-# hook  ########################################################################
 # takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
-run_hook() {
+run_hook() {  ##################################################################
     local msg_file="$1"
     local source="${2-}"
-    local diff answer tmp_file
+    local diff answer
 
-    # gate: skip if opt-out is set  ==============================================
-    if [[ -n "${COMMIT_SENSE_SKIP-}" ]]; then
-        return 0
+    if ! is_generation_allowed "${source}"; then
+        return 0  # a deliberate skip is a success
     fi
 
-    # gate: skip if source indicates reuse or explicit message  ==================
-    case "${source}" in
-        message|merge|squash|commit)
-            return 0
-            ;;
-    esac
-
-    # gate: skip if staged diff is empty  ========================================
-    if ! diff="$(git diff --cached)"; then
+    if ! diff="$(read_staged_diff)"; then
         return 1
     fi
 
     if [[ -z "${diff}" ]]; then
-        return 0
+        return 0  # nothing staged, nothing to describe
     fi
 
-    # resolve configuration  ====================================================
-    if ! resolve_config 2>/dev/null; then
+    if ! answer="$(generate_message "${diff}")"; then
         return 1
     fi
 
-    # generate message through Dify  =============================================
-    spinner start
-    trap 'spinner stop' RETURN INT TERM
-    if ! answer="$(call_dify_chat "${diff}")"; then
-        spinner stop
-        return 1
-    fi
-    spinner stop
-
-    # write message  =============================================================
-    tmp_file="$(mktemp)" || return 1
-    trap 'rm -f "${tmp_file}"' RETURN
-    {
-        printf '%s\n' "${answer}"
-        cat "${msg_file}"
-    } >"${tmp_file}" || return 1
-
-    if ! mv "${tmp_file}" "${msg_file}"; then
+    if ! write_message_file "${answer}" "${msg_file}"; then
         return 1
     fi
 
