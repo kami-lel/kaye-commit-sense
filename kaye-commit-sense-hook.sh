@@ -7,8 +7,8 @@
 ################################################################################
 set -euo pipefail
 
-# HACK manually check structure
 
+readonly VERSION="0.1.0"
 
 
 ################################################################################
@@ -323,8 +323,6 @@ write_message_file() {  # ------------------------------------------------------
 # Entry Point  #################################################################
 # argument dispatch and orchestration; no logic of its own
 readonly LOGGER_ROOT="KCSHook"  # module logger name
-
-readonly VERSION="0.1.0"
 
 readonly USAGE_TEXT="\
 kaye-commit-sense-hook.sh

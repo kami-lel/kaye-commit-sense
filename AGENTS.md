@@ -23,6 +23,10 @@ generates Git commit messages from the staged diff via a Dify app. See
 - quote all variable expansions; prefer `"${var}"` form
 - read Dify credentials and endpoints from the environment, never hardcode
 - keep visual feedback on `stderr` so it never pollutes the commit message
+- give each script section its own `kamilog` logger name, `KCSHook.<section>`
+  (e.g. `KCSHook.dify`, `KCSHook.spinner`), and use the bare `KCSHook` name
+  only at the entry point
+- messages piped to `kamilog` carry no trailing newline; `kamilog` adds its own
 
 ## Testing Instructions
 
