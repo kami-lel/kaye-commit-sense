@@ -8,7 +8,7 @@
 set -euo pipefail
 
 
-# logging  ####################################################################
+# logging  #####################################################################
 # the sole channel the user reads; every other module reports through it
 readonly LOGGER_ROOT="KCSHook"  # root logger name
 
@@ -73,13 +73,18 @@ environment:
 # constants  ###################################################################
 readonly VERSION="0.1.0"
 readonly DIFY_USER="user"
-readonly -a REQUIRED_COMMANDS=(git curl jq)
 
 # below Dify's 100-second blocking cutoff
 readonly REQUEST_TIMEOUT_SECONDS=90
 
 
 # environment  #################################################################
+# answers one question: can this machine run at all
+readonly LOGGER_ENV="KCSHook.env"  # module logger name
+
+# every command the run depends on
+readonly -a REQUIRED_COMMANDS=(git curl jq)
+
 check_dependencies() {  ########################################################
     local cmd
     local -a missing=()
@@ -91,7 +96,7 @@ check_dependencies() {  ########################################################
     done
 
     if ((${#missing[@]} > 0)); then
-        log_error "${LOGGER_ROOT}" "missing command: ${missing[*]}"
+        log_error "${LOGGER_ENV}" "missing command: ${missing[*]}"
         return 1
     fi
 }
@@ -102,13 +107,13 @@ check_dependencies() {  ########################################################
 resolve_config() {  ############################################################
     KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
     if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
-        log_error "${LOGGER_ROOT}" "KCC_DIFY_API_SECRET_KEY is not set"
+        log_error "${LOGGER_ENV}" "KCC_DIFY_API_SECRET_KEY is not set"
         return 1
     fi
 
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
-        log_error "${LOGGER_ROOT}" "KCC_DIFY_SERVICE_API_ENDPOINT is not set"
+        log_error "${LOGGER_ENV}" "KCC_DIFY_SERVICE_API_ENDPOINT is not set"
         return 1
     fi
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT%/}"
@@ -172,8 +177,8 @@ call_dify_chat() {  ############################################################
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        log_error "${LOGGER_ROOT}" \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages returned HTTP ${http_status}"
+        log_error "${LOGGER_ROOT}" "${KCC_DIFY_SERVICE_API_ENDPOINT}\
+/chat-messages returned HTTP ${http_status}"
         return 1
     fi
 
