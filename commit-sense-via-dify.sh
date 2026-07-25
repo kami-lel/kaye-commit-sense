@@ -47,6 +47,7 @@ environment:
 # constants  ###################################################################
 readonly VERSION="0.1.0"
 readonly DIFY_USER="user"
+readonly LOGGER_NAME="KCSHook"  # Kaye Commit Sense Hook
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
 # below Dify's 100-second blocking cutoff
@@ -65,8 +66,8 @@ check_dependencies() {  ########################################################
     done
 
     if ((${#missing[@]} > 0)); then
-        printf 'commit-sense-via-dify.sh: error: missing command: %s\n' \
-            "${missing[*]}" | kamilog logger error
+        printf 'missing command: %s\n' \
+            "${missing[*]}" | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
 }
@@ -77,15 +78,15 @@ check_dependencies() {  ########################################################
 resolve_config() {  ############################################################
     KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
     if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
-        printf 'commit-sense-via-dify.sh: error: KCC_DIFY_API_SECRET_KEY is not set\n' \
-            | kamilog logger error
+        printf 'KCC_DIFY_API_SECRET_KEY is not set\n' \
+            | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
 
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
-        printf 'commit-sense-via-dify.sh: error: KCC_DIFY_SERVICE_API_ENDPOINT is not set\n' \
-            | kamilog logger error
+        printf 'KCC_DIFY_SERVICE_API_ENDPOINT is not set\n' \
+            | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT%/}"
@@ -140,9 +141,9 @@ call_dify_chat() {  ############################################################
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
-        printf 'commit-sense-via-dify.sh: error: request to %s failed\n' \
+        printf 'request to %s failed\n' \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
-            | kamilog logger error
+            | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
 
@@ -150,16 +151,16 @@ call_dify_chat() {  ############################################################
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf 'commit-sense-via-dify.sh: error: %s returned HTTP %s\n' \
+        printf '%s returned HTTP %s\n' \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" "${http_status}" \
-            | kamilog logger error
+            | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
 
     answer="$(extract_answer "${response}")"
     if [[ -z "${answer}" || "${answer}" == "null" ]]; then
-        printf 'commit-sense-via-dify.sh: error: no answer in Dify reply\n' \
-            | kamilog logger error
+        printf 'no answer in Dify reply\n' \
+            | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
 
@@ -176,8 +177,8 @@ call_dify_info() {  ############################################################
         -X GET "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
-        printf 'commit-sense-via-dify.sh: error: request to %s failed\n' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" | kamilog logger error
+        printf 'request to %s failed\n' \
+            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
 
@@ -185,9 +186,9 @@ call_dify_info() {  ############################################################
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf 'commit-sense-via-dify.sh: error: %s returned HTTP %s\n' \
+        printf '%s returned HTTP %s\n' \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" \
-            | kamilog logger error
+            | kamilog logger error "${LOGGER_NAME}"
         return 1
     fi
 
@@ -236,8 +237,8 @@ run_verify() {  ################################################################
     local mode
     local exit_code=0
 
-    printf 'commit-sense-via-dify.sh: verifying environment...\n' \
-        | kamilog logger info
+    printf 'verifying environment...\n' \
+        | kamilog logger info "${LOGGER_NAME}"
 
     # check dependencies  ========================================================
     if ! check_dependencies; then
@@ -246,8 +247,8 @@ run_verify() {  ################################################################
 
     # resolve configuration  ====================================================
     if ! resolve_config 2>/dev/null; then
-        printf 'commit-sense-via-dify.sh: error: configuration incomplete\n' \
-            | kamilog logger error
+        printf 'configuration incomplete\n' \
+            | kamilog logger error "${LOGGER_NAME}"
         exit_code=1
     fi
 
@@ -262,15 +263,15 @@ run_verify() {  ################################################################
     else
         mode="$(extract_json_field "${info}" "mode")"
         if [[ "${mode}" != "advanced-chat" ]]; then
-            printf 'commit-sense-via-dify.sh: error: app mode is %s, expected advanced-chat\n' \
-                "${mode}" | kamilog logger error
+            printf 'app mode is %s, expected advanced-chat\n' \
+                "${mode}" | kamilog logger error "${LOGGER_NAME}"
             exit_code=1
         fi
     fi
 
     if ((exit_code == 0)); then
-        printf 'commit-sense-via-dify.sh: all checks passed\n' \
-            | kamilog logger info
+        printf 'all checks passed\n' \
+            | kamilog logger info "${LOGGER_NAME}"
     fi
 
     return "${exit_code}"
@@ -362,8 +363,8 @@ main() {
             fi
             ;;
         -*)  # -----------------------------------------------------------------
-            printf 'commit-sense-via-dify.sh: unknown mode: %s\n' "$1" \
-                | kamilog logger error
+            printf 'unknown mode: %s\n' "$1" \
+                | kamilog logger error "${LOGGER_NAME}"
             ;;
         *)  # ------------------------------------------------------------------
             # implicit hook path; Git never passes a leading-dash msg-file
