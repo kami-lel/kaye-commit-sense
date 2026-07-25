@@ -77,5 +77,37 @@ assert_eq "extract_json_field: missing key yields null" \
     "$(extract_json_field '{"mode":"advanced-chat"}' "missing")"
 
 
+# should_generate gate  #########################################################
+# skip if COMMIT_SENSE_SKIP is non-empty
+COMMIT_SENSE_SKIP=1 run_hook /dev/null
+assert_eq "should_generate: skip when COMMIT_SENSE_SKIP is set" \
+    "0" \
+    "$?"
+
+# skip if source is message
+run_hook /dev/null "message"
+assert_eq "should_generate: skip when source is message" \
+    "0" \
+    "$?"
+
+# skip if source is merge
+run_hook /dev/null "merge"
+assert_eq "should_generate: skip when source is merge" \
+    "0" \
+    "$?"
+
+# skip if source is squash
+run_hook /dev/null "squash"
+assert_eq "should_generate: skip when source is squash" \
+    "0" \
+    "$?"
+
+# skip if source is commit
+run_hook /dev/null "commit"
+assert_eq "should_generate: skip when source is commit" \
+    "0" \
+    "$?"
+
+
 printf '\n%d passed, %d failed\n' "${pass_count}" "${fail_count}"
 ((fail_count == 0))

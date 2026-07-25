@@ -174,16 +174,141 @@ call_dify_info() {  ############################################################
 }
 
 
+# spinner  ####################################################################
+# simple spinner drawn on stderr; call with "start", then "stop"
+_spinner_pid=""
+
+spinner() {  ###################################################################
+    local action="$1"
+    local frames=("|" "/" "-" "\\")
+    local i=0
+
+    case "${action}" in
+        start)
+            if [[ -n "${_spinner_pid}" ]]; then
+                return  # spinner already running
+            fi
+            (
+                while true; do
+                    printf '\rwaiting for Dify... %s' \
+                        "${frames[$((i % 4))]}" >&2
+                    i=$((i + 1))
+                    sleep 0.1
+                done
+            ) &
+            _spinner_pid=$!
+            ;;
+        stop)
+            if [[ -z "${_spinner_pid}" ]]; then
+                return  # no spinner running
+            fi
+            kill "${_spinner_pid}" 2>/dev/null || true
+            wait "${_spinner_pid}" 2>/dev/null || true
+            printf '\r' >&2
+            _spinner_pid=""
+            ;;
+    esac
+}
+
+
 run_verify() {  ################################################################
-    # TODO implement the preflight check
-    return 0
+    local mode
+    local exit_code=0
+
+    printf 'commit-sense-via-dify.sh: verifying environment...\n' >&2
+
+    # check dependencies  ========================================================
+    if ! check_dependencies; then
+        exit_code=1
+    fi
+
+    # resolve configuration  ====================================================
+    if ! resolve_config 2>/dev/null; then
+        printf 'commit-sense-via-dify.sh: error: configuration incomplete\n' \
+            >&2
+        exit_code=1
+    fi
+
+    if ((exit_code != 0)); then
+        return "${exit_code}"
+    fi
+
+    # call GET /info and check mode  =============================================
+    local info
+    if ! info="$(call_dify_info)"; then
+        exit_code=1
+    else
+        mode="$(extract_json_field "${info}" "mode")"
+        if [[ "${mode}" != "advanced-chat" ]]; then
+            printf 'commit-sense-via-dify.sh: error: app mode is %s, ' \
+                "${mode}" >&2
+            printf 'expected advanced-chat\n' >&2
+            exit_code=1
+        fi
+    fi
+
+    if ((exit_code == 0)); then
+        printf 'commit-sense-via-dify.sh: all checks passed\n' >&2
+    fi
+
+    return "${exit_code}"
 }
 
 
 # hook  ########################################################################
 # takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
 run_hook() {
-    # TODO implement the generation path
+    local msg_file="$1"
+    local source="${2-}"
+    local diff answer tmp_file
+
+    # gate: skip if opt-out is set  ==============================================
+    if [[ -n "${COMMIT_SENSE_SKIP-}" ]]; then
+        return 0
+    fi
+
+    # gate: skip if source indicates reuse or explicit message  ==================
+    case "${source}" in
+        message|merge|squash|commit)
+            return 0
+            ;;
+    esac
+
+    # gate: skip if staged diff is empty  ========================================
+    if ! diff="$(git diff --cached)"; then
+        return 1
+    fi
+
+    if [[ -z "${diff}" ]]; then
+        return 0
+    fi
+
+    # resolve configuration  ====================================================
+    if ! resolve_config 2>/dev/null; then
+        return 1
+    fi
+
+    # generate message through Dify  =============================================
+    spinner start
+    trap 'spinner stop' RETURN INT TERM
+    if ! answer="$(call_dify_chat "${diff}")"; then
+        spinner stop
+        return 1
+    fi
+    spinner stop
+
+    # write message  =============================================================
+    tmp_file="$(mktemp)" || return 1
+    trap 'rm -f "${tmp_file}"' RETURN
+    {
+        printf '%s\n' "${answer}"
+        cat "${msg_file}"
+    } >"${tmp_file}" || return 1
+
+    if ! mv "${tmp_file}" "${msg_file}"; then
+        return 1
+    fi
+
     return 0
 }
 
@@ -191,7 +316,6 @@ run_hook() {
 # Entry Point  #################################################################
 main() {
     local is_hook_path=false
-    # BUG mpv branch structure
 
     case "${1-}" in  # ---------------------------------------------------------
         --verify)
