@@ -2,6 +2,7 @@
 
 <!--
 TODO write demos using plan saved in CONTEXT
+Fixme rewrite in-script bash docs
 todo mpl UT
 -->
 
