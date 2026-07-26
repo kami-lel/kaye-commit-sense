@@ -55,7 +55,7 @@ check_dependencies() {  # ------------------------------------------------------
     done
 
     if ((${#missing[@]} > 0)); then
-        printf 'missing command: %s\n' "${missing[*]}" \
+        printf 'missing command: %s' "${missing[*]}" \
             | kamilog logger error "${LOGGER_ENV}"
         return 1
     fi
@@ -67,14 +67,14 @@ check_dependencies() {  # ------------------------------------------------------
 resolve_config() {  # ----------------------------------------------------------
     KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
     if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
-        printf 'KCC_DIFY_API_SECRET_KEY is not set\n' \
+        printf 'KCC_DIFY_API_SECRET_KEY unset' \
             | kamilog logger error "${LOGGER_ENV}"
         return 1
     fi
 
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
-        printf 'KCC_DIFY_SERVICE_API_ENDPOINT is not set\n' \
+        printf 'KCC_DIFY_SERVICE_API_ENDPOINT unset' \
             | kamilog logger error "${LOGGER_ENV}"
         return 1
     fi
@@ -138,7 +138,7 @@ call_dify_chat() {  # ----------------------------------------------------------
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
-        printf 'request to %s failed\n' \
+        printf 'request to %s failed' \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
@@ -148,7 +148,7 @@ call_dify_chat() {  # ----------------------------------------------------------
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf '%s returned HTTP %s\n' \
+        printf '%s returned HTTP %s' \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" "${http_status}" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
@@ -156,7 +156,7 @@ call_dify_chat() {  # ----------------------------------------------------------
 
     answer="$(extract_answer "${response}")"
     if [[ -z "${answer}" || "${answer}" == "null" ]]; then
-        printf 'no answer in Dify reply\n' \
+        printf 'no answer in Dify reply' \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
     fi
@@ -174,7 +174,7 @@ call_dify_info() {  # ----------------------------------------------------------
         -X GET "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
-        printf 'request to %s failed\n' \
+        printf 'request to %s failed' \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
@@ -184,7 +184,7 @@ call_dify_info() {  # ----------------------------------------------------------
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf '%s returned HTTP %s\n' \
+        printf '%s returned HTTP %s' \
             "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
@@ -294,14 +294,14 @@ generate_message_from_file() {  # ----------------------------------------------
     local diff
 
     if [[ ! -r "${diff_file}" ]]; then
-        printf 'cannot read diff file: %s\n' "${diff_file}" \
+        printf 'cannot read diff file: %s' "${diff_file}" \
             | kamilog logger error "${LOGGER_STAGES}"
         return 1
     fi
 
     diff="$(<"${diff_file}")"
     if [[ -z "${diff}" ]]; then
-        printf 'diff file is empty: %s\n' "${diff_file}" \
+        printf 'diff file is empty: %s' "${diff_file}" \
             | kamilog logger error "${LOGGER_STAGES}"
         return 1
     fi
@@ -350,22 +350,21 @@ environment:
   COMMIT_SENSE_SKIP               any non-empty value skips generation
 "
 
-# HACK manually update logic & logs
 # checks dependencies, configuration, and the backend; writes nothing
 run_verify() {  # --------------------------------------------------------------
     local mode
     local exit_code=0
 
-    printf 'verifying environment\n' \
-        | kamilog logger info "${LOGGER_ROOT}"
+    printf 'verifying environment' \
+        | kamilog logger enter "${LOGGER_ROOT}"
 
     if ! check_dependencies; then
         exit_code=1
     fi
 
     if ! resolve_config; then
-        printf 'configuration incomplete\n' \
-            | kamilog logger error "${LOGGER_ROOT}"
+        printf 'configuration incomplete' \
+            | kamilog logger fail "${LOGGER_ROOT}"
         exit_code=1
     fi
 
@@ -379,15 +378,15 @@ run_verify() {  # --------------------------------------------------------------
     else
         mode="$(extract_json_field "${info}" "mode")"
         if [[ "${mode}" != "advanced-chat" ]]; then
-            printf 'app mode is %s, expected advanced-chat\n' "${mode}" \
+            printf 'app mode is %s, expected advanced-chat' "${mode}" \
                 | kamilog logger error "${LOGGER_ROOT}"
             exit_code=1
         fi
     fi
 
     if ((exit_code == 0)); then
-        printf 'all checks passed\n' \
-            | kamilog logger info "${LOGGER_ROOT}"
+        printf 'all checks passed' \
+            | kamilog logger pass "${LOGGER_ROOT}"
     fi
 
     return "${exit_code}"
@@ -421,7 +420,7 @@ run_hook() {  # ----------------------------------------------------------------
         return 1
     fi
 
-    printf 'done\n' | kamilog logger "done" "${LOGGER_ROOT}"
+    printf 'done' | kamilog logger "done" "${LOGGER_ROOT}"
     return 0
 }
 
@@ -454,7 +453,7 @@ main() {  # --------------------------------------------------------------------
             fi
             ;;
         -*)
-            printf 'unknown mode: %s\n' "$1" \
+            printf 'unknown mode: %s' "$1" \
                 | kamilog logger error "${LOGGER_ROOT}"
             ;;
         *)
