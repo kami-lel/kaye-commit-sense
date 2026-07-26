@@ -379,8 +379,7 @@ run_verify() {  # --------------------------------------------------------------
         return "${exit_code}"
     fi
 
-    # HACK HACK manually check logic
-    printf 'checking Dify /info endpoint' \
+    printf 'connecting Dify /info endpoint' \
         | kamilog logger enter "${LOGGER_ROOT}"
 
     local info
