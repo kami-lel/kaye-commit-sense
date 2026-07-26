@@ -325,6 +325,15 @@ run_verify() {  # --------------------------------------------------------------
     printf 'verifying environment' \
         | kamilog logger enter "${LOGGER_ROOT}"
 
+    # every later check parses JSON, so this one gates the rest
+    if ! command -v jq >/dev/null 2>&1; then
+        printf 'jq not installed' \
+            | kamilog logger fail "${LOGGER_ROOT}"
+        return 1
+    fi
+    printf 'jq installed' \
+        | kamilog logger pass "${LOGGER_ROOT}"
+
     if ! check_dependencies; then
         exit_code=1
     fi
