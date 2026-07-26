@@ -92,6 +92,69 @@ resolve_config() {  # ----------------------------------------------------------
 }
 
 
+# checks dependencies, configuration, and the backend; writes nothing
+run_verify() {  # --------------------------------------------------------------
+    local mode
+    local exit_code=0
+
+    printf 'verifying environment' \
+        | kamilog logger enter "${LOGGER_ROOT}"
+
+    # every later check parses JSON, so this one gates the rest
+    if ! command -v jq >/dev/null 2>&1; then
+        printf 'jq not installed' \
+            | kamilog logger fail "${LOGGER_ROOT}"
+        return 1
+    fi
+    printf 'jq installed' \
+        | kamilog logger pass "${LOGGER_ROOT}"
+
+    if ! check_dependencies; then
+        exit_code=1
+    fi
+
+    if ! resolve_config; then
+        printf 'config incomplete' \
+            | kamilog logger fail "${LOGGER_ROOT}"
+        exit_code=1
+    else
+        printf 'config verified' \
+            | kamilog logger pass "${LOGGER_ROOT}"
+    fi
+
+    if ((exit_code != 0)); then
+        return "${exit_code}"
+    fi
+
+    printf 'reaching Dify App by /info endpoint' \
+        | kamilog logger enter "${LOGGER_ROOT}"
+
+    local info
+    if ! info="$(call_dify_info)"; then
+        exit_code=1
+    else
+        mode="$(extract_json_field "${info}" "mode")"
+        if [[ "${mode}" != "advanced-chat" ]]; then
+            printf 'app mode is %s, expected advanced-chat' "${mode}" \
+                | kamilog logger error "${LOGGER_ROOT}"
+            exit_code=1
+        else
+            printf 'app mode is: %s' "${mode}" \
+                | kamilog logger info "${LOGGER_ROOT}"
+            printf 'Dify App reachable' \
+                | kamilog logger pass "${LOGGER_ROOT}"
+        fi
+    fi
+
+    if ((exit_code == 0)); then
+        printf 'all verified' \
+            | kamilog logger "done" "${LOGGER_ROOT}"
+    fi
+
+    return "${exit_code}"
+}
+
+
 # dify  ########################################################################
 # everything crossing the wire, and every way it can fail closed
 
@@ -323,68 +386,6 @@ environment:
   KCC_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
   COMMIT_SENSE_SKIP               any non-empty value skips generation
 "
-
-# checks dependencies, configuration, and the backend; writes nothing
-run_verify() {  # --------------------------------------------------------------
-    local mode
-    local exit_code=0
-
-    printf 'verifying environment' \
-        | kamilog logger enter "${LOGGER_ROOT}"
-
-    # every later check parses JSON, so this one gates the rest
-    if ! command -v jq >/dev/null 2>&1; then
-        printf 'jq not installed' \
-            | kamilog logger fail "${LOGGER_ROOT}"
-        return 1
-    fi
-    printf 'jq installed' \
-        | kamilog logger pass "${LOGGER_ROOT}"
-
-    if ! check_dependencies; then
-        exit_code=1
-    fi
-
-    if ! resolve_config; then
-        printf 'config incomplete' \
-            | kamilog logger fail "${LOGGER_ROOT}"
-        exit_code=1
-    else
-        printf 'config verified' \
-            | kamilog logger pass "${LOGGER_ROOT}"
-    fi
-
-    if ((exit_code != 0)); then
-        return "${exit_code}"
-    fi
-
-    printf 'reaching Dify App by /info endpoint' \
-        | kamilog logger enter "${LOGGER_ROOT}"
-
-    local info
-    if ! info="$(call_dify_info)"; then
-        exit_code=1
-    else
-        mode="$(extract_json_field "${info}" "mode")"
-        if [[ "${mode}" != "advanced-chat" ]]; then
-            printf 'app mode is %s, expected advanced-chat' "${mode}" \
-                | kamilog logger error "${LOGGER_ROOT}"
-            exit_code=1
-        else
-            printf 'app mode is: %s' "${mode}" \
-                | kamilog logger info "${LOGGER_ROOT}"
-            printf 'Dify App reachable' \
-                | kamilog logger pass "${LOGGER_ROOT}"
-        fi
-    fi
-
-    if ((exit_code == 0)); then
-        printf 'all verified' \
-            | kamilog logger "done" "${LOGGER_ROOT}"
-    fi
-
-    return "${exit_code}"
-}
 
 
 # HACK manually update logic & logs
