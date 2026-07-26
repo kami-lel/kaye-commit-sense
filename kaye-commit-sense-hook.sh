@@ -202,8 +202,6 @@ call_dify_info() {  # ----------------------------------------------------------
 
 # spinner  #####################################################################
 # liveness during the blocking call; owns the only background process here
-# shellcheck disable=SC2034  # declared for symmetry; nothing logs from here yet
-readonly LOGGER_SPINNER="KCSHook.spinner"  # module logger name
 
 # tracks the background drawing process; empty means no spinner running
 _spinner_pid=""
@@ -381,8 +379,13 @@ run_verify() {  # --------------------------------------------------------------
         return "${exit_code}"
     fi
 
-    # HACK HACK manually verify uiux
+    # HACK HACK manually check logic
+    printf 'checking Dify /info endpoint' \
+        | kamilog logger enter "${LOGGER_ROOT}"
+
     local info
+    spinner start
+    trap 'spinner stop' RETURN INT TERM
     if ! info="$(call_dify_info)"; then
         exit_code=1
     else
@@ -391,8 +394,12 @@ run_verify() {  # --------------------------------------------------------------
             printf 'app mode is %s, expected advanced-chat' "${mode}" \
                 | kamilog logger error "${LOGGER_ROOT}"
             exit_code=1
+        else
+            printf 'app mode is %s' "${mode}" \
+                | kamilog logger pass "${LOGGER_ROOT}"
         fi
     fi
+    spinner stop
 
     if ((exit_code == 0)); then
         printf 'all verified' \
