@@ -65,17 +65,23 @@ check_dependencies() {  # ------------------------------------------------------
 # fills KCC_DIFY_API_SECRET_KEY and KCC_DIFY_SERVICE_API_ENDPOINT;
 # the key is never printed
 resolve_config() {  # ----------------------------------------------------------
+    local has_error=false
+
     KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
     if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
         printf 'KCC_DIFY_API_SECRET_KEY unset' \
             | kamilog logger error "${LOGGER_ENV}"
-        return 1
+        has_error=true
     fi
 
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
         printf 'KCC_DIFY_SERVICE_API_ENDPOINT unset' \
             | kamilog logger error "${LOGGER_ENV}"
+        has_error=true
+    fi
+
+    if [[ "${has_error}" == true ]]; then
         return 1
     fi
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT%/}"
