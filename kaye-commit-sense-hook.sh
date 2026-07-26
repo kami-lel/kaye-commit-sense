@@ -200,46 +200,6 @@ call_dify_info() {  # ----------------------------------------------------------
 }
 
 
-# spinner  #####################################################################
-# liveness during the blocking call; owns the only background process here
-
-# tracks the background drawing process; empty means no spinner running
-_spinner_pid=""
-
-# simple spinner drawn on stderr; call with "start", then "stop"
-spinner() {  # -----------------------------------------------------------------
-    local action="$1"
-    local frames=("|" "/" "-" "\\")
-    local i=0
-
-    case "${action}" in
-        start)
-            if [[ -n "${_spinner_pid}" ]]; then
-                return  # spinner already running
-            fi
-            (
-                while true; do
-                    printf '\rwaiting for Dify... %s' \
-                        "${frames[$((i % 4))]}" >&2
-                    i=$((i + 1))
-                    sleep 0.1
-                done
-            ) &
-            _spinner_pid=$!
-            ;;
-        stop)
-            if [[ -z "${_spinner_pid}" ]]; then
-                return  # no spinner running
-            fi
-            kill "${_spinner_pid}" 2>/dev/null || true
-            wait "${_spinner_pid}" 2>/dev/null || true
-            printf '\r' >&2
-            _spinner_pid=""
-            ;;
-    esac
-}
-
-
 # Public API  ##################################################################
 # the four stages of a run, each callable on its own; this is the interface a
 # demo sources
@@ -280,13 +240,16 @@ generate_message() {  # --------------------------------------------------------
         return 1
     fi
 
-    spinner start
-    trap 'spinner stop' RETURN INT TERM
+    # logs go to stderr; stdout belongs to the answer alone
+    printf 'contacting Dify, up to %ss' "${REQUEST_TIMEOUT_SECONDS}" \
+        | kamilog logger enter "${LOGGER_STAGES}" >&2
 
     if ! answer="$(call_dify_chat "${diff}")"; then
         return 1
     fi
-    spinner stop
+
+    printf 'message generated' \
+        | kamilog logger succ "${LOGGER_STAGES}" >&2
 
     printf '%s' "${answer}"
 }
@@ -379,12 +342,10 @@ run_verify() {  # --------------------------------------------------------------
         return "${exit_code}"
     fi
 
-    printf 'connecting Dify /info endpoint' \
+    printf 'reaching Dify App by /info endpoint' \
         | kamilog logger enter "${LOGGER_ROOT}"
 
     local info
-    spinner start
-    trap 'spinner stop' RETURN INT TERM
     if ! info="$(call_dify_info)"; then
         exit_code=1
     else
@@ -394,11 +355,12 @@ run_verify() {  # --------------------------------------------------------------
                 | kamilog logger error "${LOGGER_ROOT}"
             exit_code=1
         else
-            printf 'app mode is %s' "${mode}" \
+            printf 'app mode is: %s' "${mode}" \
+                | kamilog logger info "${LOGGER_ROOT}"
+            printf 'Dify App reachable' \
                 | kamilog logger pass "${LOGGER_ROOT}"
         fi
     fi
-    spinner stop
 
     if ((exit_code == 0)); then
         printf 'all verified' \
