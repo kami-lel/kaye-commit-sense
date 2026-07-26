@@ -373,7 +373,7 @@ run_verify() {  # --------------------------------------------------------------
             | kamilog logger fail "${LOGGER_ROOT}"
         exit_code=1
     else
-        printf 'config complete' \
+        printf 'config verified' \
             | kamilog logger pass "${LOGGER_ROOT}"
     fi
 
@@ -381,7 +381,7 @@ run_verify() {  # --------------------------------------------------------------
         return "${exit_code}"
     fi
 
-    # HACK manually verify uiux
+    # HACK HACK manually verify uiux
     local info
     if ! info="$(call_dify_info)"; then
         exit_code=1
@@ -395,7 +395,7 @@ run_verify() {  # --------------------------------------------------------------
     fi
 
     if ((exit_code == 0)); then
-        printf 'all checks passed' \
+        printf 'all verified' \
             | kamilog logger "done" "${LOGGER_ROOT}"
     fi
 
