@@ -11,6 +11,7 @@ set -euo pipefail
 readonly VERSION="0.1.0"
 
 
+
 ################################################################################
 # kamilog_shim
 # lets scripts call `kamilog` safely even when it is not installed
@@ -37,9 +38,12 @@ kamilog() {
 # END of kamilog_shim  #########################################################
 
 
-# environment  #################################################################
+# constant  ####################################################################
+readonly LOGGER_ROOT="KCSHook"  # every section without a name of its own
+
+
+# verification  ################################################################
 # answers one question: can this machine run at all
-readonly LOGGER_ENV="KCSHook.env"  # module logger name
 
 # every command the run depends on
 readonly -a REQUIRED_COMMANDS=(git curl jq)
@@ -56,7 +60,7 @@ check_dependencies() {  # ------------------------------------------------------
 
     if ((${#missing[@]} > 0)); then
         printf 'missing command: %s' "${missing[*]}" \
-            | kamilog logger error "${LOGGER_ENV}"
+            | kamilog logger error "${LOGGER_ROOT}"
         return 1
     fi
 }
@@ -70,14 +74,14 @@ resolve_config() {  # ----------------------------------------------------------
     KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
     if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
         printf 'KCC_DIFY_API_SECRET_KEY unset' \
-            | kamilog logger error "${LOGGER_ENV}"
+            | kamilog logger error "${LOGGER_ROOT}"
         has_error=true
     fi
 
     KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
         printf 'KCC_DIFY_SERVICE_API_ENDPOINT unset' \
-            | kamilog logger error "${LOGGER_ENV}"
+            | kamilog logger error "${LOGGER_ROOT}"
         has_error=true
     fi
 
@@ -90,7 +94,8 @@ resolve_config() {  # ----------------------------------------------------------
 
 # dify  ########################################################################
 # everything crossing the wire, and every way it can fail closed
-readonly LOGGER_DIFY="KCSHook.dify"  # module logger name
+
+readonly LOGGER_DIFY="${LOGGER_ROOT}.dify"
 
 # identifies the caller to the Dify app
 readonly DIFY_USER="user"
@@ -200,10 +205,10 @@ call_dify_info() {  # ----------------------------------------------------------
 }
 
 
-# Public API  ##################################################################
-# the four stages of a run, each callable on its own; this is the interface a
-# demo sources
-readonly LOGGER_STAGES="KCSHook.stages"  # module logger name
+# git  #########################################################################
+# everything Git hands over, and everything it expects back
+
+readonly LOGGER_GIT="${LOGGER_ROOT}.git"
 
 # decides whether generation should happen at all, given Git's $2 source
 # argument; 0 means proceed, 1 means skip
@@ -230,53 +235,6 @@ read_staged_diff() {  # --------------------------------------------------------
 }
 
 
-# turns a diff already in hand into a commit message on stdout; the reusable
-# seam, needing neither a staged index nor a message file
-generate_message() {  # --------------------------------------------------------
-    local diff="$1"
-    local answer
-
-    if ! resolve_config; then
-        return 1
-    fi
-
-    # logs go to stderr; stdout belongs to the answer alone
-    printf 'contacting Dify, up to %ss' "${REQUEST_TIMEOUT_SECONDS}" \
-        | kamilog logger enter "${LOGGER_STAGES}" >&2
-
-    if ! answer="$(call_dify_chat "${diff}")"; then
-        return 1
-    fi
-
-    printf 'message generated' \
-        | kamilog logger succ "${LOGGER_STAGES}" >&2
-
-    printf '%s' "${answer}"
-}
-
-
-# reads a diff from a file and hands it to generate_message
-generate_message_from_file() {  # ----------------------------------------------
-    local diff_file="$1"
-    local diff
-
-    if [[ ! -r "${diff_file}" ]]; then
-        printf 'cannot read diff file: %s' "${diff_file}" \
-            | kamilog logger error "${LOGGER_STAGES}"
-        return 1
-    fi
-
-    diff="$(<"${diff_file}")"
-    if [[ -z "${diff}" ]]; then
-        printf 'diff file is empty: %s' "${diff_file}" \
-            | kamilog logger error "${LOGGER_STAGES}"
-        return 1
-    fi
-
-    generate_message "${diff}"
-}
-
-
 # prepends the answer above the existing message; the temporary file makes the
 # replacement atomic, so an interrupted run never leaves a half-written message
 write_message_file() {  # ------------------------------------------------------
@@ -296,9 +254,58 @@ write_message_file() {  # ------------------------------------------------------
 }
 
 
-# Entry Point  #################################################################
+# Public API  ##################################################################
+# the generation seam a demonstration script sources; needs neither a staged
+# index nor a message file, only a diff already in hand
+
+# turns a diff already in hand into a commit message on stdout
+generate_message() {  # --------------------------------------------------------
+    local diff="$1"
+    local answer
+
+    if ! resolve_config; then
+        return 1
+    fi
+
+    # logs go to stderr; stdout belongs to the answer alone
+    printf 'contacting Dify, up to %ss' "${REQUEST_TIMEOUT_SECONDS}" \
+        | kamilog logger enter "${LOGGER_ROOT}" >&2
+
+    if ! answer="$(call_dify_chat "${diff}")"; then
+        return 1
+    fi
+
+    printf 'message generated' \
+        | kamilog logger succ "${LOGGER_ROOT}" >&2
+
+    printf '%s' "${answer}"
+}
+
+
+# reads a diff from a file and hands it to generate_message
+generate_message_from_file() {  # ----------------------------------------------
+    local diff_file="$1"
+    local diff
+
+    if [[ ! -r "${diff_file}" ]]; then
+        printf 'cannot read diff file: %s' "${diff_file}" \
+            | kamilog logger error "${LOGGER_ROOT}"
+        return 1
+    fi
+
+    diff="$(<"${diff_file}")"
+    if [[ -z "${diff}" ]]; then
+        printf 'diff file is empty: %s' "${diff_file}" \
+            | kamilog logger error "${LOGGER_ROOT}"
+        return 1
+    fi
+
+    generate_message "${diff}"
+}
+
+
+# Main Entry Point  ############################################################
 # argument dispatch and orchestration; no logic of its own
-readonly LOGGER_ROOT="KCSHook"  # module logger name
 
 readonly USAGE_TEXT="\
 kaye-commit-sense-hook.sh
