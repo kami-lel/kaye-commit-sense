@@ -350,6 +350,7 @@ environment:
   COMMIT_SENSE_SKIP               any non-empty value skips generation
 "
 
+# HACK manually update logic & logs
 # checks dependencies, configuration, and the backend; writes nothing
 run_verify() {  # --------------------------------------------------------------
     local mode
@@ -393,6 +394,7 @@ run_verify() {  # --------------------------------------------------------------
 }
 
 
+# HACK manually update logic & logs
 # takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
 run_hook() {  # ----------------------------------------------------------------
     local msg_file="$1"
@@ -442,6 +444,7 @@ main() {  # --------------------------------------------------------------------
             return 0
             ;;
         "")
+            # BUG fix & simplify these logics
             # no message file, so generation is impossible; fall to the usage
             ;;
         --)
@@ -465,7 +468,6 @@ main() {  # --------------------------------------------------------------------
         return
     fi
 
-    # BUG nothing printed when not in venv
     printf '%s' "${USAGE_TEXT}" >&2
     return 2
 }
