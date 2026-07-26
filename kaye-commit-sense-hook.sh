@@ -268,6 +268,30 @@ call_dify_info() {  # ----------------------------------------------------------
 }
 
 
+# turns a diff already in hand into a commit message on stdout
+generate_message() {  # --------------------------------------------------------
+    local diff="$1"
+    local answer
+
+    if ! resolve_config; then
+        return 1
+    fi
+
+    # logs go to stderr; stdout belongs to the answer alone
+    printf 'contacting Dify, up to %ss' "${REQUEST_TIMEOUT_SECONDS}" \
+        | kamilog logger enter "${LOGGER_DIFY}" >&2
+
+    if ! answer="$(call_dify_chat "${diff}")"; then
+        return 1
+    fi
+
+    printf 'message generated' \
+        | kamilog logger succ "${LOGGER_DIFY}" >&2
+
+    printf '%s' "${answer}"
+}
+
+
 # git  #########################################################################
 # everything Git hands over, and everything it expects back
 
@@ -314,56 +338,6 @@ write_message_file() {  # ------------------------------------------------------
     } >"${tmp_file}" || return 1
 
     mv "${tmp_file}" "${msg_file}"
-}
-
-
-# Public API  ##################################################################
-# the generation seam a demonstration script sources; needs neither a staged
-# index nor a message file, only a diff already in hand
-
-# turns a diff already in hand into a commit message on stdout
-generate_message() {  # --------------------------------------------------------
-    local diff="$1"
-    local answer
-
-    if ! resolve_config; then
-        return 1
-    fi
-
-    # logs go to stderr; stdout belongs to the answer alone
-    printf 'contacting Dify, up to %ss' "${REQUEST_TIMEOUT_SECONDS}" \
-        | kamilog logger enter "${LOGGER_ROOT}" >&2
-
-    if ! answer="$(call_dify_chat "${diff}")"; then
-        return 1
-    fi
-
-    printf 'message generated' \
-        | kamilog logger succ "${LOGGER_ROOT}" >&2
-
-    printf '%s' "${answer}"
-}
-
-
-# reads a diff from a file and hands it to generate_message
-generate_message_from_file() {  # ----------------------------------------------
-    local diff_file="$1"
-    local diff
-
-    if [[ ! -r "${diff_file}" ]]; then
-        printf 'cannot read diff file: %s' "${diff_file}" \
-            | kamilog logger error "${LOGGER_ROOT}"
-        return 1
-    fi
-
-    diff="$(<"${diff_file}")"
-    if [[ -z "${diff}" ]]; then
-        printf 'diff file is empty: %s' "${diff_file}" \
-            | kamilog logger error "${LOGGER_ROOT}"
-        return 1
-    fi
-
-    generate_message "${diff}"
 }
 
 
