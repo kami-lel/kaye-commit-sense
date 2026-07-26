@@ -154,8 +154,8 @@ call_dify_chat() {  # ----------------------------------------------------------
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf '%s returned HTTP %s' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" "${http_status}" \
+        printf 'returned HTTP %s: %s' \
+            "${http_status}" "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
     fi
@@ -369,15 +369,19 @@ run_verify() {  # --------------------------------------------------------------
     fi
 
     if ! resolve_config; then
-        printf 'configuration incomplete' \
+        printf 'config incomplete' \
             | kamilog logger fail "${LOGGER_ROOT}"
         exit_code=1
+    else
+        printf 'config complete' \
+            | kamilog logger pass "${LOGGER_ROOT}"
     fi
 
     if ((exit_code != 0)); then
         return "${exit_code}"
     fi
 
+    # HACK manually verify uiux
     local info
     if ! info="$(call_dify_info)"; then
         exit_code=1
@@ -392,7 +396,7 @@ run_verify() {  # --------------------------------------------------------------
 
     if ((exit_code == 0)); then
         printf 'all checks passed' \
-            | kamilog logger pass "${LOGGER_ROOT}"
+            | kamilog logger "done" "${LOGGER_ROOT}"
     fi
 
     return "${exit_code}"
