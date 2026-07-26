@@ -22,8 +22,17 @@ kamilog() {
         "$_KAMILOG_BIN" "$@"
         return
     fi
-    # no bin found, pass stdin through as-is
-    cat
+    case "$1" in
+        cb|cb0)
+            printf '# %s\n' "$(cat)"
+            ;;
+        logger)
+            printf '%s:\t%s\n' "$2" "$(cat)"
+            ;;
+        *)
+            cat  # no bin found, pass stdin through as-is
+            ;;
+    esac
 }
 # END of kamilog_shim  #########################################################
 
