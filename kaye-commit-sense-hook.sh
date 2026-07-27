@@ -4,6 +4,8 @@
 # kaye-commit-sense-hook.sh
 #
 # generate a Git commit message from the staged diff, through a Dify app
+# Part of Kaye Commit Sense
+# Q.v. https://github.com/kami-lel/kaye-commit-sense
 ################################################################################
 set -euo pipefail
 
