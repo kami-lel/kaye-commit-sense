@@ -395,11 +395,19 @@ environment:
   KCSH_REQUEST_TIMEOUT_SEC          network request timeout, in seconds; optional, default=45
   KCSH_DISABLE_MD_SYNTAX            disables Markdown syntax in the generated message; optional, default=False
   KCSH_ENABLE_SKIPPING              whether skips this hook entirely; optional, default=False
+
+exit codes:
+  the hook path (bare MSG_FILE invocation) always exits 0, even on internal
+  failure, since a broken generator must never block a commit; --verify is
+  the sole command that exits non-zero, since it is a manual preflight check
+  with no commit at risk
 "
 
 
-# HACK manually update logic & logs
-# takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
+# takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit;
+# fails open by design — every internal error here is logged to stderr and
+# swallowed into a 0 exit, so a broken generator never blocks a commit;
+# --verify is the one command in this script allowed to exit non-zero
 run_hook() {  # ----------------------------------------------------------------
     local msg_file="$1"
     local source="${2-}"
@@ -409,8 +417,16 @@ run_hook() {  # ----------------------------------------------------------------
         return 0  # a deliberate skip is a success
     fi
 
+    if ! check_dependencies; then
+        printf 'skipping generation, dependency missing' \
+            | kamilog logger error "${LOGGER_ROOT}"
+        return 0
+    fi
+
     if ! diff="$(read_staged_diff)"; then
-        return 1
+        printf 'skipping generation, could not read staged diff' \
+            | kamilog logger error "${LOGGER_ROOT}"
+        return 0
     fi
 
     if [[ -z "${diff}" ]]; then
@@ -418,11 +434,15 @@ run_hook() {  # ----------------------------------------------------------------
     fi
 
     if ! answer="$(generate_message "${diff}")"; then
-        return 1
+        printf 'skipping generation, message generation failed' \
+            | kamilog logger error "${LOGGER_ROOT}"
+        return 0
     fi
 
     if ! write_message_file "${answer}" "${msg_file}"; then
-        return 1
+        printf 'skipping generation, could not write message file' \
+            | kamilog logger error "${LOGGER_ROOT}"
+        return 0
     fi
 
     printf 'done' | kamilog logger "done" "${LOGGER_ROOT}"
