@@ -2,6 +2,7 @@
 
 <!--
 TODO test real use hook
+todo add spinner back
 fixme rewrite in-script bash function docs
 todo mpl UT
 -->
