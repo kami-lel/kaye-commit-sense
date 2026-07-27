@@ -66,6 +66,7 @@ check_dependencies() {  # ------------------------------------------------------
 }
 
 
+# Fixme KCC -> KCS
 # fills KCC_DIFY_API_SECRET_KEY and KCC_DIFY_SERVICE_API_ENDPOINT;
 # the key is never printed
 resolve_config() {  # ----------------------------------------------------------
