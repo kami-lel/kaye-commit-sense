@@ -56,9 +56,8 @@ readonly -a REQUIRED_COMMANDS=(git curl jq)
 # probed when `command -v` fails, eg under a minimal-PATH GUI environment
 readonly -a FALLBACK_BIN_DIRS=(/usr/bin /usr/local/bin /opt/homebrew/bin /bin)
 
-# bare names by default; check_dependencies fills in a resolved absolute
-# path when one is found, so sourcing this file without running it first
-# (eg the demo scripts) still falls back to plain PATH lookup
+# bare names by default; check_dependencies resolves each to an absolute
+# path, so sourcing without it first (eg the demos) still finds them on PATH
 GIT_BIN="git"
 CURL_BIN="curl"
 JQ_BIN="jq"
@@ -66,9 +65,8 @@ JQ_BIN="jq"
 # optional backstop beyond --max-time; GNU-only, degrades to curl alone
 _TIMEOUT_BIN="$(command -v timeout 2>/dev/null || true)"
 
-# resolves ${cmd} to an absolute path, `command -v` first, then
-# FALLBACK_BIN_DIRS; writes the result into ${var_name}; fails with a
-# message naming every place searched
+# resolves ${cmd} to an absolute path into ${var_name}; command -v, then
+# FALLBACK_BIN_DIRS; fails with a message naming every place searched
 resolve_dependency() {  # -------------------------------------------------------
     local cmd="$1"
     local var_name="$2"
@@ -119,6 +117,39 @@ check_dependencies() {  # ------------------------------------------------------
 
     printf 'dependencies verified' \
         | kamilog logger pass "${LOGGER_ROOT}" >&2
+}
+
+
+# reports interpreter, dependency, and hook-install paths; advisory only
+check_hook_installation() {  # --------------------------------------------------
+    local hooks_dir bash_bin file
+
+    bash_bin="$(type -P bash 2>/dev/null || true)"
+    printf 'interpreter: %s' "${bash_bin:-not found}" \
+        | kamilog logger info "${LOGGER_ROOT}" >&2
+    printf 'dependency paths: git=%s curl=%s jq=%s' \
+        "${GIT_BIN}" "${CURL_BIN}" "${JQ_BIN}" \
+        | kamilog logger info "${LOGGER_ROOT}" >&2
+
+    hooks_dir="$("${GIT_BIN}" rev-parse --git-path hooks 2>/dev/null || true)"
+    if [[ -z "${hooks_dir}" ]]; then
+        printf 'could not resolve the active hooks directory' \
+            | kamilog logger warning "${LOGGER_ROOT}" >&2
+        return 0
+    fi
+    printf 'active hooks directory: %s' "${hooks_dir}" \
+        | kamilog logger info "${LOGGER_ROOT}" >&2
+
+    for file in prepare-commit-msg kaye-commit-sense-hook.sh; do
+        if [[ -x "${hooks_dir}/${file}" ]]; then
+            printf '%s installed and executable' "${file}" \
+                | kamilog logger pass "${LOGGER_ROOT}" >&2
+        else
+            printf '%s not installed or not executable at %s' \
+                "${file}" "${hooks_dir}" \
+                | kamilog logger warning "${LOGGER_ROOT}" >&2
+        fi
+    done
 }
 
 
@@ -178,6 +209,8 @@ run_verify() {  # --------------------------------------------------------------
     if ! check_dependencies; then
         return 1
     fi
+
+    check_hook_installation
 
     if ! resolve_config; then
         printf 'config incomplete' \
