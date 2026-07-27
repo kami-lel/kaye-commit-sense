@@ -1,0 +1,87 @@
+diff --git a/src/cache/parser.py b/src/cache/parser.py
+index 8b1c4d2..a90e3f7 100644
+--- a/src/cache/parser.py
++++ b/src/cache/parser.py
+@@ -1,20 +1,22 @@
+-# Parses the on-disk index file.
++"""Reader for the on-disk index file.
++
++The format is one record per line: ``<key>\t<offset>\t<length>``.
++Records are appended, never rewritten, so the last occurrence of a
++key wins.
++"""
+
+
+ def parse_index(lines):
++    # Later duplicates intentionally overwrite earlier ones.
+     index = {}
+     for line in lines:
+-        # skip blanks
+         if not line.strip():
+             continue
++        # A leading '#' marks a tombstone written by compaction.
+         if line.startswith("#"):
+             continue
+         key, offset, length = line.split("\t")
+-        # store it
+         index[key] = (int(offset), int(length))
+     return index
+
+
+ def offset_of(index, key):
+-    # returns None if missing
++    """Return the byte offset for *key*, or ``None`` if absent."""
+     entry = index.get(key)
+     return entry[0] if entry else None
+diff --git a/src/cache/legacy_store.py b/src/cache/legacy_store.py
+deleted file mode 100644
+index 4e2a917..0000000
+--- a/src/cache/legacy_store.py
++++ /dev/null
+@@ -1,18 +0,0 @@
+-"""Pre-1.0 store kept around for the old import path."""
+-
+-import warnings
+-
+-from .store import Store
+-
+-
+-class LegacyStore(Store):
+-    def __init__(self, *args, **kwargs):
+-        warnings.warn(
+-            "LegacyStore is deprecated, use Store instead",
+-            DeprecationWarning,
+-            stacklevel=2,
+-        )
+-        super().__init__(*args, **kwargs)
+-
+-    def fetch(self, key):
+-        return self.get(key)
+diff --git a/src/cache/store.py b/src/cache/store.py
+index a71f083..d5c9b46 100644
+--- a/src/cache/store.py
++++ b/src/cache/store.py
+@@ -8,19 +8,13 @@ class Store:
+
+     def put(self, key, value):
+-        self._data[key] = (value, time.monotonic())
++        self._data[key] = (value, time.monotonic() + self.ttl)
+
+     def get(self, key):
+-        entry = self._data.get(key)
+-        if entry is None:
+-            return None
+-        value, inserted_at = entry
+-        age = time.monotonic() - inserted_at
+-        if age > self.ttl:
+-            del self._data[key]
+-            return None
+-        return value
++        value, expires_at = self._data.get(key, (None, 0))
++        if time.monotonic() >= expires_at:
++            self._data.pop(key, None)
++            return None
++        return value
+
+     def drop(self, key):
+         self._data.pop(key, None)
