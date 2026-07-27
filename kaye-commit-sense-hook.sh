@@ -396,7 +396,7 @@ environment:
 "
 
 
-# Hack manually update logic & logs
+# HACK manually update logic & logs
 # takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
 run_hook() {  # ----------------------------------------------------------------
     local msg_file="$1"
@@ -446,7 +446,7 @@ main() {  # --------------------------------------------------------------------
             return 0
             ;;
         "")
-            # Bug fix & simplify these logics
+            # BUG fix & simplify these logics
             # no message file, so generation is impossible; fall to the usage
             ;;
         --)
