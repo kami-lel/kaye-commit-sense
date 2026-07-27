@@ -1,6 +1,7 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
+TODO test real use hook
 fixme rewrite in-script bash function docs
 todo mpl UT
 -->

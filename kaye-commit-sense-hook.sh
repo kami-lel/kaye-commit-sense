@@ -447,19 +447,19 @@ main() {  # --------------------------------------------------------------------
             printf '%s\n' "${VERSION}"
             return 0
             ;;
-        "")
-            # BUG fix & simplify these logics
-            # no message file, so generation is impossible; fall to the usage
-            ;;
         --)
             shift  # explicit hook path
             if (($# > 0)); then
                 is_hook_path=true
             fi
             ;;
-        -*)
-            printf 'unknown mode: %s' "$1" \
-                | kamilog logger error "${LOGGER_ROOT}"
+        ""|-*)
+            # empty: no message file, generation is impossible, fall to usage
+            # dash-prefixed: unknown mode, log then fall to usage
+            if [[ -n "${1-}" ]]; then
+                printf 'unknown mode: %s' "$1" \
+                    | kamilog logger error "${LOGGER_ROOT}"
+            fi
             ;;
         *)
             # implicit hook path; Git never passes a leading-dash msg-file
