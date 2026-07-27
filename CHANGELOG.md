@@ -2,7 +2,6 @@
 
 <!--
 fixme rewrite in-script bash function docs
-FIXME version uniform in stub
 todo mpl UT
 -->
 

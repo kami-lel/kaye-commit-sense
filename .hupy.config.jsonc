@@ -7,7 +7,7 @@
 // #############################################################################
 {
   // HUPy version, do not edit
-  "hupy_version": "3.0.0",
+  "hupy_version": "3.1.0",
   "vg": { // VerGrep  ##########################################################
     // grep repo's version string
     //
@@ -24,6 +24,10 @@
       {
         "file": "kaye-commit-sense-hook.sh",
         "glob": "^readonly VERSION=\"([^\"]+)\"$"
+      },
+      {
+        "file": "prepare-commit-msg",
+        "glob": "^# Part of Kaye Commit Sense v([^ ]+)$"
       }
     ]
   },
