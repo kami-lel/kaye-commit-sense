@@ -126,18 +126,9 @@ run_verify() {  # --------------------------------------------------------------
     printf 'verifying environment' \
         | kamilog logger enter "${LOGGER_ROOT}"
 
-    # every later check parses JSON, so this one gates the rest
-    if ! command -v jq >/dev/null 2>&1; then
-        printf 'jq not installed' \
-            | kamilog logger fail "${LOGGER_ROOT}"
-        return 1
-    fi
-    # FIXME check all commands
-    printf 'jq installed' \
-        | kamilog logger pass "${LOGGER_ROOT}"
-
+    # later checks parse JSON and call curl, so this one gates the rest
     if ! check_dependencies; then
-        exit_code=1
+        return 1
     fi
 
     if ! resolve_config; then
