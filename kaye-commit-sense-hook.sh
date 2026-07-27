@@ -66,21 +66,21 @@ check_dependencies() {  # ------------------------------------------------------
 }
 
 
-# fills KCSH_DIFY_API_SECRET_KEY and KCSH_DIFY_SERVICE_API_ENDPOINT;
+# fills KCSH_DIFY_SERVICE_API_ENDPOINT and KCSH_DIFY_SERVICE_API_SECRET_KEY;
 # the key is never printed
 resolve_config() {  # ----------------------------------------------------------
     local has_error=false
 
-    KCSH_DIFY_API_SECRET_KEY="${KCSH_DIFY_API_SECRET_KEY-}"
-    if [[ -z "${KCSH_DIFY_API_SECRET_KEY}" ]]; then
-        printf 'KCSH_DIFY_API_SECRET_KEY unset' \
+    KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT-}"
+    if [[ -z "${KCSH_DIFY_SERVICE_API_ENDPOINT}" ]]; then
+        printf 'KCSH_DIFY_SERVICE_API_ENDPOINT unset' \
             | kamilog logger error "${LOGGER_ROOT}"
         has_error=true
     fi
 
-    KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT-}"
-    if [[ -z "${KCSH_DIFY_SERVICE_API_ENDPOINT}" ]]; then
-        printf 'KCSH_DIFY_SERVICE_API_ENDPOINT unset' \
+    KCSH_DIFY_SERVICE_API_SECRET_KEY="${KCSH_DIFY_SERVICE_API_SECRET_KEY-}"
+    if [[ -z "${KCSH_DIFY_SERVICE_API_SECRET_KEY}" ]]; then
+        printf 'KCSH_DIFY_SERVICE_API_SECRET_KEY unset' \
             | kamilog logger error "${LOGGER_ROOT}"
         has_error=true
     fi
@@ -208,7 +208,7 @@ call_dify_chat() {  # ----------------------------------------------------------
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
-        -H "Authorization: Bearer ${KCSH_DIFY_API_SECRET_KEY}" \
+        -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
@@ -246,7 +246,7 @@ call_dify_info() {  # ----------------------------------------------------------
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
-        -H "Authorization: Bearer ${KCSH_DIFY_API_SECRET_KEY}" \
+        -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
         printf 'request to %s failed' \
             "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
@@ -356,7 +356,7 @@ usage:
   ~~ --help|--version       print help/version
 
 environment:
-  KCSH_DIFY_API_SECRET_KEY         required; the Dify Service API key
+  KCSH_DIFY_SERVICE_API_SECRET_KEY         required; the Dify Service API key
   KCSH_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
   SKIP_KAYE_COMMIT_SENSE           any non-empty value skips generation
 "
