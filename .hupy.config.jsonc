@@ -7,18 +7,25 @@
 // #############################################################################
 {
   // HUPy version, do not edit
-  "hupy_version": "2.0.0",
+  "hupy_version": "3.0.0",
   "vg": { // VerGrep  ##########################################################
     // grep repo's version string
     //
     // disable VerGrep
     "is_disabled": false,
-    // file path which version string can be found,
-    // relative to repo root
-    "version_file": "commit-sense-via-dify.sh",
-    // regex pattern to match line containing version string;
-    // first capture group `( )` is version
-    "version_line_pattern": "^readonly VERSION=\"([^\"]+)\"$"
+    // Version Uniformity: assert the version also appears correctly
+    // in every configured occurrence below
+    //
+    // disable Version Uniformity (VerGrep itself stays enabled)
+    "disable_version_uniformity": false,
+    // let a drifted occurrence warn instead of blocking the commit
+    "allow_version_uniformity_failure": false,
+    "version_occurrences": [
+      {
+        "file": "kaye-commit-sense-hook.sh",
+        "glob": "^readonly VERSION=\"([^\"]+)\"$"
+      }
+    ]
   },
   "cbm": { // ##################################################################
     // exact name of main branch

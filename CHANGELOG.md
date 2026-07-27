@@ -2,7 +2,7 @@
 
 <!--
 fixme rewrite in-script bash function docs
-Fixme use new hupy version, version uniform in stub & script
+FIXME version uniform in stub
 todo mpl UT
 -->
 
