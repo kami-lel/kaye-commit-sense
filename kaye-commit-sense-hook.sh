@@ -25,15 +25,17 @@ kamilog() {
         "$_KAMILOG_BIN" "$@"
         return
     fi
+    input="$(cat; printf x)";
+    input="${input%x}"   # keep trailing \n from being stripped
     case "$1" in
         cb|cb0)
-            printf '# %s' "$(cat)"
+            printf '# %s' "$input"
             ;;
         logger)
-            printf '%s:\t%s' "$2" "$(cat)"
+            printf '%s:\t%s' "$2" "$input"
             ;;
         *)
-            cat  # no bin found, pass stdin through as-is
+            printf '%s' "$input"  # no bin found, pass stdin through as-is
             ;;
     esac
 }
@@ -659,7 +661,7 @@ generate_message() {  # --------------------------------------------------------
 
     # -N leaves the line open, so the throb animates in place on it and
     # kamilog is never called again, once per frame
-    printf 'Kaye Commit Sense generating \n' \
+    printf 'Kaye Commit Sense generating ' \
         | kamilog logger info "${LOGGER_DIFY}" -N >&2
     throb_widget_start
 
