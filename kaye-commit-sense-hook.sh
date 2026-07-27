@@ -211,11 +211,12 @@ MKTEMP_BIN="mktemp"
 # optional backstop beyond --max-time; GNU-only, degrades to curl alone
 _TIMEOUT_BIN="$(command -v timeout 2>/dev/null || true)"
 
-# resolves ${cmd} to an absolute path into ${var_name}; command -v, then
-# FALLBACK_BIN_DIRS; fails with a message naming every place searched
-resolve_dependency() {  # -------------------------------------------------------
-    local cmd="$1"
-    local var_name="$2"
+# resolve_dependency()
+#
+# resolve a command name to an absolute path, into the named variable
+resolve_dependency() {  # ------------------------------------------------------
+    local -r cmd="$1"
+    local -r var_name="$2"
     local resolved="" dir
 
     resolved="$(command -v "${cmd}" 2>/dev/null || true)"
@@ -238,18 +239,22 @@ resolve_dependency() {  # ------------------------------------------------------
     printf -v "${var_name}" '%s' "${resolved}"
     printf '%s resolved: %s' "${cmd}" "${resolved}" \
         | kamilog logger succ "${LOGGER_ROOT}" >&2
+    return 0
 }
 
+# check_dependencies()
+#
+# resolve every required command into its own path variable
 check_dependencies() {  # ------------------------------------------------------
     local cmd var_name
     local -a missing=()
 
     for cmd in "${REQUIRED_COMMANDS[@]}"; do
         case "${cmd}" in
-            git) var_name="GIT_BIN" ;;
-            curl) var_name="CURL_BIN" ;;
-            jq) var_name="JQ_BIN" ;;
-            mktemp) var_name="MKTEMP_BIN" ;;
+        git) var_name="GIT_BIN" ;;
+        curl) var_name="CURL_BIN" ;;
+        jq) var_name="JQ_BIN" ;;
+        mktemp) var_name="MKTEMP_BIN" ;;
         esac
         if ! resolve_dependency "${cmd}" "${var_name}"; then
             missing+=("${cmd}")
@@ -264,11 +269,14 @@ check_dependencies() {  # ------------------------------------------------------
 
     printf 'dependencies verified' \
         | kamilog logger pass "${LOGGER_ROOT}" >&2
+    return 0
 }
 
 
-# reports interpreter, dependency, and hook-install paths; advisory only
-check_hook_installation() {  # --------------------------------------------------
+# check_hook_installation()
+#
+# report the interpreter, dependency, and hook-install paths; advisory only
+check_hook_installation() {  # -------------------------------------------------
     local hooks_dir bash_bin file
 
     bash_bin="$(type -P bash 2>/dev/null || true)"
@@ -297,12 +305,13 @@ check_hook_installation() {  # -------------------------------------------------
                 | kamilog logger warning "${LOGGER_ROOT}" >&2
         fi
     done
+    return 0
 }
 
 
-# fills KCSH_DIFY_SERVICE_API_ENDPOINT, KCSH_DIFY_SERVICE_API_SECRET_KEY,
-# KCSH_REQUEST_TIMEOUT_SEC, and KCSH_DISABLE_MD_SYNTAX; the key is never
-# printed
+# resolve_config()
+#
+# load and validate every KCSH_ setting; the secret key is never printed
 resolve_config() {  # ----------------------------------------------------------
     local has_error=false
 
@@ -328,26 +337,42 @@ resolve_config() {  # ----------------------------------------------------------
     # default kept below Dify's 100s cutoff; only no-op paths meet 2s
     KCSH_REQUEST_TIMEOUT_SEC="${KCSH_REQUEST_TIMEOUT_SEC:-45}"
     KCSH_DISABLE_MD_SYNTAX="${KCSH_DISABLE_MD_SYNTAX:-False}"
+    return 0
 }
 
 
-# normalizes KCSH_DISABLE_MD_SYNTAX to a lowercase "true"/"false" jq boolean
+# is_md_syntax_disabled()
+#
+# normalize KCSH_DISABLE_MD_SYNTAX into a lowercase jq boolean
 is_md_syntax_disabled() {  # ---------------------------------------------------
     case "${KCSH_DISABLE_MD_SYNTAX,,}" in
-        true|1|yes)
-            printf 'true'
-            ;;
-        *)
-            printf 'false'
-            ;;
+    true|1|yes) printf 'true' ;;
+    *) printf 'false' ;;
     esac
+    return 0
 }
 
 
-# checks dependencies, configuration, and the backend; writes nothing
+# run_verify()
+#
+# check the dependencies, the configuration, and the backend
+#
+# preflight for a manual run: it writes no commit message and touches no
+# file, and it is the one command in this script allowed to exit non-zero,
+# since no commit is ever at risk behind it
+#
+# OUTPUT:
+#   log every check, and the closing verdict, to stderr
+#
+# RETURN:
+#   0  everything verified
+#   1  a dependency, configuration, or backend check failed
+#
+# EXAMPLE:
+#   ./kaye-commit-sense-hook.sh --verify
 run_verify() {  # --------------------------------------------------------------
-    local mode
-    local exit_code=0
+    local mode info
+    local -i exit_code=0
 
     printf 'verifying environment' \
         | kamilog logger enter "${LOGGER_ROOT}" >&2
@@ -383,7 +408,6 @@ run_verify() {  # --------------------------------------------------------------
         return "${exit_code}"
     fi
 
-    local info
     # -N leaves the line open, so the throb animates in place on it and
     # kamilog is never called again, once per frame
     printf 'reaching Dify App by /info endpoint ' \
@@ -428,12 +452,13 @@ readonly LOGGER_DIFY="${LOGGER_ROOT}.dify"
 readonly DIFY_USER="user"
 
 
-# builds the /chat-messages request body; jq handles all escaping, including
-# quotes, backslashes, newlines, and non-ASCII in the diff
+# build_chat_request()
+#
+# build the JSON body of a /chat-messages request; jq handles all escaping
 build_chat_request() {  # ------------------------------------------------------
-    local diff="$1"
-    local user="$2"
-    local disable_md_syntax="$3"  # normalized "true" or "false"
+    local -r diff="$1"
+    local -r user="$2"
+    local -r disable_md_syntax="$3"
 
     "${JQ_BIN}" -n \
         --arg query "${diff}" \
@@ -445,29 +470,58 @@ build_chat_request() {  # ------------------------------------------------------
         auto_generate_name: false,
         user: $user
     }'
+    return "$?"
 }
 
 
-# extracts the "answer" field from a blocking /chat-messages response; jq
-# resolves \uXXXX escapes and UTF-16 surrogate pairs (emoji) on its own
+# extract_answer()
+#
+# extract the "answer" field from a blocking /chat-messages response
 extract_answer() {  # ----------------------------------------------------------
-    local json="$1"
+    local -r json="$1"
     "${JQ_BIN}" -r '.answer' <<<"${json}"
+    return "$?"
 }
 
 
-# extracts a top-level string field by name; used for /info's "mode"
+# extract_json_field()
+#
+# extract a top-level string field by name; used for /info's "mode"
 extract_json_field() {  # ------------------------------------------------------
-    local json="$1"
-    local key="$2"
+    local -r json="$1"
+    local -r key="$2"
     "${JQ_BIN}" -r --arg key "${key}" '.[$key]' <<<"${json}"
+    return "$?"
 }
 
 
-# blocking POST /chat-messages; prints the answer on stdout, fails closed on a
-# curl error, a non-2xx status, or a missing/empty answer
+# call_dify_chat()
+#
+# post the staged diff to /chat-messages and print the answer
+#
+# a blocking request that fails closed on a curl error, on a non-2xx
+# status, and on a missing or empty answer; `timeout` caps the call
+# whenever that binary exists, as a hard backstop for curl ignoring its
+# own --max-time
+#
+# PREREQUISITE:
+#   - resolve_config() must have already run, to populate the KCSH_*
+#     settings this function reads the endpoint and the key from
+#
+# USAGE:
+#   call_dify_chat DIFF
+#
+# ARGUMENT:
+#   DIFF  staged diff to describe
+#
+# OUTPUT:
+#   print the answer to stdout; log every failure to stderr
+#
+# RETURN:
+#   0  answer received
+#   1  the request failed, or the reply carried no answer
 call_dify_chat() {  # ----------------------------------------------------------
-    local diff="$1"
+    local -r diff="$1"
     local body response http_status answer
     local -a runner=()
 
@@ -510,11 +564,30 @@ call_dify_chat() {  # ----------------------------------------------------------
     fi
 
     printf '%s' "${answer}"
+    return 0
 }
 
 
-# GET /info; prints the raw JSON on stdout, fails closed on a curl error or a
-# non-2xx status
+# call_dify_info()
+#
+# fetch /info and print the reply untouched
+#
+# fails closed on a curl error and on a non-2xx status; `timeout` caps the
+# call whenever that binary exists, exactly as in call_dify_chat
+#
+# PREREQUISITE:
+#   - resolve_config() must have already run, to populate the KCSH_*
+#     settings this function reads the endpoint and the key from
+#
+# USAGE:
+#   call_dify_info
+#
+# OUTPUT:
+#   print the raw JSON to stdout; log every failure to stderr
+#
+# RETURN:
+#   0  reply received
+#   1  the request failed, or the status was not 2xx
 call_dify_info() {  # ----------------------------------------------------------
     local response http_status
     local -a runner=()
@@ -545,12 +618,32 @@ call_dify_info() {  # ----------------------------------------------------------
     fi
 
     printf '%s' "${response}"
+    return 0
 }
 
 
-# turns a diff already in hand into a commit message on stdout
+# generate_message()
+#
+# turn a diff already in hand into a commit message
+#
+# resolve the configuration, animate a throb while the request is in
+# flight, and print whatever the Dify app answers; every log line goes to
+# stderr, so stdout carries the message alone
+#
+# USAGE:
+#   generate_message DIFF
+#
+# ARGUMENT:
+#   DIFF  staged diff to describe
+#
+# OUTPUT:
+#   print the commit message to stdout; log progress to stderr
+#
+# RETURN:
+#   0  message generated
+#   1  the configuration is incomplete, or the request failed
 generate_message() {  # --------------------------------------------------------
-    local diff="$1"
+    local -r diff="$1"
     local answer
 
     if ! resolve_config; then
@@ -580,6 +673,7 @@ generate_message() {  # --------------------------------------------------------
         | kamilog logger succ "${LOGGER_DIFY}" >&2
 
     printf '%s' "${answer}"
+    return 0
 }
 
 
@@ -588,36 +682,60 @@ generate_message() {  # --------------------------------------------------------
 
 readonly LOGGER_GIT="${LOGGER_ROOT}.git"
 
-# decides whether generation should happen at all, given Git's $2 source
-# argument; 0 means proceed, 1 means skip
+# is_generation_allowed()
+#
+# decide whether generation should happen at all, given Git's source argument
 is_generation_allowed() {  # ---------------------------------------------------
-    local source="${1-}"
+    local -r source="${1-}"
 
     if [[ -n "${KCSH_ENABLE_SKIPPING-}" ]]; then
         return 1  # explicit opt-out
     fi
 
     case "${source}" in
-        message|merge|squash|commit)
-            return 1  # Git supplied a message already
-            ;;
+    message|merge|squash|commit)
+        return 1  # Git supplied a message already
+        ;;
     esac
 
     return 0
 }
 
 
-# prints the staged diff on stdout; empty output means nothing is staged
+# read_staged_diff()
+#
+# print the staged diff; empty output means nothing is staged
 read_staged_diff() {  # --------------------------------------------------------
     "${GIT_BIN}" diff --cached
+    return "$?"
 }
 
 
-# prepends the answer above the existing message; the temporary file makes the
-# replacement atomic, so an interrupted run never leaves a half-written message
+# write_message_file()
+#
+# prepend the generated message above the existing one
+#
+# write through a temporary file in the message file's own directory, so
+# the closing rename is atomic and an interrupted run never leaves a
+# half-written commit message behind
+#
+# PREREQUISITE:
+#   - check_dependencies() must have already run, to populate the
+#     MKTEMP_BIN path this function invokes
+#
+# USAGE:
+#   write_message_file ANSWER MESSAGE_FILE
+#
+# ARGUMENT:
+#   ANSWER        generated message to place on top
+#   MESSAGE_FILE  path Git handed over for the commit message
+#
+# RETURN:
+#   0  message file rewritten
+#   1  the temporary file could not be created, written, or renamed
 write_message_file() {  # ------------------------------------------------------
-    local answer="$1"
-    local msg_file="$2"
+    local -r answer="$1"
+    local -r msg_file="$2"
     local tmp_file
 
     tmp_file="$("${MKTEMP_BIN}" "$(dirname "${msg_file}")/.XXXXXX")" || return 1
@@ -629,6 +747,7 @@ write_message_file() {  # ------------------------------------------------------
     } >"${tmp_file}" || return 1
 
     mv "${tmp_file}" "${msg_file}"
+    return "$?"
 }
 
 
@@ -661,13 +780,30 @@ exit codes:
 "
 
 
-# takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit;
-# fails open by design — every internal error here is logged to stderr and
-# swallowed into a 0 exit, so a broken generator never blocks a commit;
-# --verify is the one command in this script allowed to exit non-zero
+# run_hook()
+#
+# carry out Git's prepare-commit-msg contract from end to end
+#
+# fails open by design: every internal error is logged to stderr and
+# swallowed into a 0 exit, so a broken generator never blocks a commit,
+# and --verify stays the one command allowed to exit non-zero
+#
+# USAGE:
+#   run_hook MESSAGE_FILE [SOURCE [COMMIT]]
+#
+# ARGUMENT:
+#   MESSAGE_FILE  path Git handed over for the commit message
+#   [SOURCE]      Git's message source; may suppress generation
+#   [COMMIT]      commit object Git passes along; unused here
+#
+# OUTPUT:
+#   log every step, and every swallowed failure, to stderr
+#
+# RETURN:
+#   0  always
 run_hook() {  # ----------------------------------------------------------------
-    local msg_file="$1"
-    local source="${2-}"
+    local -r msg_file="$1"
+    local -r source="${2-}"
     local diff answer
 
     if ! is_generation_allowed "${source}"; then
@@ -707,41 +843,71 @@ run_hook() {  # ----------------------------------------------------------------
 }
 
 
-# a leading dash selects a mode; anything else is Git's positional contract
+# main()
+#
+# dispatch on the first argument
+#
+# a leading dash selects a mode, and anything else is Git's positional
+# contract; an unknown mode, or no argument at all, falls through to the
+# usage text
+#
+# USAGE:
+#   main MESSAGE_FILE [SOURCE [COMMIT]]
+#
+# USAGE:
+#   main --verify | --help | --version
+#
+# ARGUMENT:
+#   MESSAGE_FILE  path Git handed over for the commit message
+#   [SOURCE]      Git's message source
+#   [COMMIT]      commit object Git passes along
+#
+# OPTION:
+#   --verify   check the dependencies, settings, and backend
+#   --help     print the usage text
+#   --version  print the version string
+#
+# OUTPUT:
+#   print the usage text to stdout for --help, to stderr otherwise
+#
+# RETURN:
+#   0  the selected mode succeeded
+#   1  --verify failed one of its checks
+#   2  neither a mode nor a message file was given
 main() {  # --------------------------------------------------------------------
     local is_hook_path=false
 
     case "${1-}" in
-        --verify)
-            run_verify
-            return
-            ;;
-        --help)
-            printf '%s' "${USAGE_TEXT}"
-            return 0
-            ;;
-        --version)
-            printf '%s\n' "${VERSION}"
-            return 0
-            ;;
-        --)
-            shift  # explicit hook path
-            if (($# > 0)); then
-                is_hook_path=true
-            fi
-            ;;
-        ""|-*)
-            # empty: no message file, generation is impossible, fall to usage
-            # dash-prefixed: unknown mode, log then fall to usage
-            if [[ -n "${1-}" ]]; then
-                printf 'unknown mode: %s' "$1" \
-                    | kamilog logger error "${LOGGER_ROOT}" >&2
-            fi
-            ;;
-        *)
-            # implicit hook path; Git never passes a leading-dash msg-file
+    --verify)
+        run_verify
+        return
+        ;;
+    --help)
+        printf '%s' "${USAGE_TEXT}"
+        return 0
+        ;;
+    --version)
+        printf '%s\n' "${VERSION}"
+        return 0
+        ;;
+    --)
+        shift  # explicit hook path
+        if (($# > 0)); then
             is_hook_path=true
-            ;;
+        fi
+        ;;
+    ""|-*)
+        # empty: no message file, generation is impossible, fall to usage
+        # dash-prefixed: unknown mode, log then fall to usage
+        if [[ -n "${1-}" ]]; then
+            printf 'unknown mode: %s' "$1" \
+                | kamilog logger error "${LOGGER_ROOT}" >&2
+        fi
+        ;;
+    *)
+        # implicit hook path; Git never passes a leading-dash msg-file
+        is_hook_path=true
+        ;;
     esac
 
     if [[ "${is_hook_path}" == true ]]; then
