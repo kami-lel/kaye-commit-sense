@@ -42,9 +42,18 @@ mode), reached through the Dify Service API.
 | Result field | `.answer` |
 
 Blocking mode was chosen deliberately over streaming. The Dify documentation
-warns that a blocking request may be cut off after 100 seconds, so the request
-carries a timeout and the script fails closed rather than emitting an empty
-message.
+warns that a blocking request may be cut off after 100 seconds, so the
+request carries a timeout; if the call fails or returns an empty answer, the
+hook simply skips writing a message rather than emitting an empty one.
+
+`curl`'s own `--max-time` bounds the network leg. When the `timeout` binary
+is available (GNU coreutils; not guaranteed on stock macOS), both Dify calls
+run under it as an extra wall-clock backstop of `KCSH_REQUEST_TIMEOUT_SEC + 5`
+seconds, in case curl itself ever fails to honor `--max-time`. It is probed
+once at load time and simply skipped when absent — degrade, don't require. A
+sub-2-second response is only realistic for the no-op paths (empty diff, a
+skip source, a missing dependency); an actual Dify call is bounded by
+`KCSH_REQUEST_TIMEOUT_SEC`, not by that figure.
 
 Configuration arrives through the environment, every name prefixed `KCSH_`:
 `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
@@ -84,7 +93,7 @@ with `-`.
 | First argument | Mode | Behavior |
 | --- | --- | --- |
 | absent | usage | print the synopsis to `stderr`, exit `2` |
-| `--verify` | preflight | check dependencies and configuration, call `GET /info`, confirm `advanced-chat` |
+| `--verify` | preflight | check dependencies, hook installation, configuration, call `GET /info`, confirm `advanced-chat` |
 | `-h`, `--help` | help | print the synopsis to `stdout`, exit `0` |
 | `--version` | version | print the version string, exit `0` |
 | `--` | hook, explicit | shift once, treat the rest as Git's `$1`/`$2`/`$3` |
@@ -114,7 +123,7 @@ graph TD
   C -- empty --> Z
   C -- diff --> D[build JSON payload]
   D --> E[blocking POST /chat-messages]
-  E -- error or empty answer --> Y[fail closed]
+  E -- error or empty answer --> Y[exit 0, leave message]
   E -- answer --> F[finalize message]
   F --> G[write into the message file]
 ```
@@ -160,6 +169,11 @@ caller supplies them; the script never synthesizes them itself.
 | `squash` | skip — Git supplied a squash message |
 | `commit` | skip — an existing commit is being reused |
 
+`template` is deliberately **not** a skip case: `write_message_file` prepends
+above whatever is already in the message file, so a configured
+`commit.template` survives untouched below the generated subject line, the
+same way Git's own trailing comment block does.
+
 ## JSON Handling
 
 Building the request body and parsing the reply both require correct JSON
@@ -195,21 +209,51 @@ dependency decision is reversed: **`jq` is now required.**
 `--verify` checks this exact set, plus configuration, so an end user has one
 command to confirm the environment is ready before relying on the hook.
 
+Each of `git`/`curl`/`jq` is resolved to an absolute path by
+`resolve_dependency`: `command -v` first, then a fixed fallback directory
+search (`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, `/bin`), covering
+the minimal `PATH` a GUI-launched editor process can hand a hook. The
+resolved paths land in `GIT_BIN`/`CURL_BIN`/`JQ_BIN`, which default to the
+bare command names — sourcing the script without running
+`check_dependencies` first (as the `examples/` demo scripts do) still
+resolves through `PATH` normally. `--verify`'s expanded `check_hook_installation`
+stage additionally reports the resolved `bash` interpreter, these three
+paths, the active hooks directory (`git rev-parse --git-path hooks`, which
+honors `core.hooksPath`), and whether `prepare-commit-msg` and
+`kaye-commit-sense-hook.sh` are both present and executable there —
+advisory only, since `--verify` may reasonably run before installation.
+
+## Dogfooding in This Repository
+
+This repository manages its own Git hooks through a separate tool, **hupy**,
+so `kaye-commit-sense-hook.sh` never ran against a commit made in its own
+repository — `.git/hooks/prepare-commit-msg` here only ever invoked hupy's
+dispatcher. `.hupy.config.jsonc`'s `hb.prepare_commit_msg.lead` now wires
+`./kaye-commit-sense-hook.sh` in ahead of hupy's own core logic; hupy
+forwards the raw `$1`/`$2`/`$3` hook arguments to lead commands, so no
+argument-passing shim was needed. This only wires the mechanism — the
+`KCSH_DIFY_SERVICE_API_ENDPOINT`/`KCSH_DIFY_SERVICE_API_SECRET_KEY`
+environment variables still need to be set in a developer's shell for it to
+do anything beyond a clean skip.
+
 ## Implementation Complete
 
 All components are now implemented:
 
-- **`--verify` preflight** ✓ — checks dependencies, resolves configuration,
-  calls `GET /info`, and confirms the app mode is `advanced-chat`. Logs the
-  resolved API endpoint, request timeout, and Markdown-syntax setting, then
-  reports each check on stderr and exits non-zero on first failure.
+- **`--verify` preflight** ✓ — checks dependencies, hook installation,
+  resolves configuration, calls `GET /info`, and confirms the app mode is
+  `advanced-chat`. Logs the resolved API endpoint, request timeout, and
+  Markdown-syntax setting, then reports each check on stderr and exits
+  non-zero on first failure — the sole command in this script allowed to.
 - **hook gate** ✓ — skips generation when `KCSH_ENABLE_SKIPPING` is set, when
   `$2` indicates reuse (message/merge/squash/commit), or when the staged diff
   is empty.
 - **generation and message write** ✓ — captures staged diff, logs progress on
   stderr via `kamilog` during the blocking call, prepends the answer above
-  the existing message via atomic temp-file-and-mv. Fails closed on any
-  error; never writes an empty message.
+  the existing message via atomic temp-file-and-mv beside the target file.
+  Fails open on any error — `run_hook` always exits `0`, logging the reason
+  to stderr and leaving the message file untouched; never writes an empty
+  message.
 - **environment variables** — every name is prefixed `KCSH_`:
   `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
   required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
@@ -232,5 +276,6 @@ All components are now implemented:
 - `KCSH_REQUEST_TIMEOUT_SEC` and `KCSH_DISABLE_MD_SYNTAX` fall back to `45`
   and `False` respectively when unset
 - the run is non-interactive — feedback goes to `stderr`, never `stdout`
-- the exit code is `0` on success or a deliberate skip, non-zero on failure, so
-  the caller decides whether a Dify outage blocks the commit
+- the hook path (`run_hook`) always exits `0`, even on internal failure — a
+  broken generator must never block a commit. `--verify` is the sole command
+  that exits non-zero, since it is a manual preflight with no commit at risk

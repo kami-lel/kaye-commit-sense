@@ -30,6 +30,11 @@ generates Git commit messages from the staged diff via a Dify app. See
   (e.g. `KCSH.dify`, `KCSH.git`), and use the bare `LOGGER_ROOT` (`KCSH`) only
   at the entry point
 - messages piped to `kamilog` carry no trailing newline; `kamilog` adds its own
+- export `GIT_PAGER=cat PAGER=cat` near the top, before any `git` subprocess
+  call, so nothing ever waits on a pager
+- resolve `git`/`curl`/`jq` to absolute paths via `resolve_dependency` into
+  `GIT_BIN`/`CURL_BIN`/`JQ_BIN`; call sites use these variables, never the
+  bare command name
 
 ## Testing Instructions
 
@@ -44,7 +49,10 @@ generates Git commit messages from the staged diff via a Dify app. See
 
 - the staged diff is sent to an external Dify service — never log the API key
 - the API key must come from the environment; keep it out of the repo and history
-- fail closed — if Dify is unreachable, do not silently emit an empty message
+- fail open on the hook path — every internal error inside `run_hook` logs to
+  `stderr` and exits `0`, so a broken generator never blocks a commit; never
+  add a `return 1` there. `--verify` is the sole command allowed to exit
+  non-zero, since it is a manual preflight check with no commit at risk
 
 ## PR & Commit Instructions
 
