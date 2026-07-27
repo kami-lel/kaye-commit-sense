@@ -1,6 +1,7 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
+todo gap review before 1.0.0
 fixme rewrite in-script bash function docs
 todo mpl UT
 -->
