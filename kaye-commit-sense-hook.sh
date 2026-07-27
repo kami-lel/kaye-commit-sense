@@ -396,7 +396,7 @@ environment:
 "
 
 
-# HACK HACK manually update logic & logs
+# Hack manually update logic & logs
 # takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
 run_hook() {  # ----------------------------------------------------------------
     local msg_file="$1"
