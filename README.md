@@ -8,19 +8,22 @@ A single Bash script that reads `git diff --cached`, sends it to a Dify app,
 waits with visual feedback, and returns the result as the commit message. Built
 to run as a Git commit hook.
 
+## Prerequisites
 
-## Requirements
-
-- `bash`, `git`, `curl`, `jq`, and a **Dify** app with an API key
+Require `bash`, `git`, `curl`, `jq`, and a **Dify** app with an API key
 
 > [!IMPORTANT]
 > Install `jq` before using this hook.
 
 ## Setup
 
-### Prerequisites
+1. copy both files into repo's `.git/hooks/`:
 
-Ensure `jq`, `curl`, `git`, and `bash` are installed and in your `PATH`.
+
+```
+.git/hooks/kaye-commit-sense-hook.sh
+.git/hooks/prepare-commit-msg
+```
 
 ### Installation
 
@@ -36,9 +39,10 @@ Ensure `jq`, `curl`, `git`, and `bash` are installed and in your `PATH`.
    ```
 
 3. Export your Dify credentials in your shell environment or in `.bashrc`:
+
    ```bash
-   export KCC_DIFY_API_SECRET_KEY="your-dify-api-key"
-   export KCC_DIFY_SERVICE_API_ENDPOINT="http://your-dify-instance/v1"
+   export KCSH_DIFY_API_SECRET_KEY="your-dify-api-key"
+   export KCSH_DIFY_SERVICE_API_ENDPOINT="http://your-dify-instance/v1"
    ```
 
 ### Verification
@@ -77,8 +81,3 @@ For help:
 ```bash
 ./kaye-commit-sense-hook.sh --help
 ```
-
-## Docs
-
-- [AGENTS.md](AGENTS.md) — conventions for code changes
-- [CONTEXT.md](CONTEXT.md) — design and data flow
