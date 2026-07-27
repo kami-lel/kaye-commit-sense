@@ -548,7 +548,10 @@ call_dify_info() {  # ----------------------------------------------------------
 # draws the progress line and its throb; silent off a terminal
 start_generating_throb() {  # --------------------------------------------------
     [[ -t 2 ]] || return 0
-    printf 'Generating ' >&2  # throb draws at the cursor, right after
+    # -N leaves the line open, so the throb animates in place on it and
+    # kamilog is never called again, once per frame
+    printf 'generating commit message ' \
+        | kamilog logger info "${LOGGER_DIFY}" -N >&2
     throb_widget_start
 }
 
@@ -570,7 +573,7 @@ generate_message() {  # --------------------------------------------------------
     fi
 
     # logs go to stderr; stdout belongs to the answer alone
-    printf 'requesting Dify for commit message (waiting up to %s seconds)' \
+    printf 'requesting Dify (waiting up to %s seconds)' \
         "${KCSH_REQUEST_TIMEOUT_SEC}" \
         | kamilog logger enter "${LOGGER_DIFY}" >&2
 
