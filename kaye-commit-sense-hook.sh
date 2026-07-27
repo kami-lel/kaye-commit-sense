@@ -53,20 +53,60 @@ readonly LOGGER_ROOT="KCSH"  # every section without a name of its own
 # every command the run depends on
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
+# probed when `command -v` fails, eg under a minimal-PATH GUI environment
+readonly -a FALLBACK_BIN_DIRS=(/usr/bin /usr/local/bin /opt/homebrew/bin /bin)
+
+# bare names by default; check_dependencies fills in a resolved absolute
+# path when one is found, so sourcing this file without running it first
+# (eg the demo scripts) still falls back to plain PATH lookup
+GIT_BIN="git"
+CURL_BIN="curl"
+JQ_BIN="jq"
+
 # optional backstop beyond --max-time; GNU-only, degrades to curl alone
 _TIMEOUT_BIN="$(command -v timeout 2>/dev/null || true)"
 
+# resolves ${cmd} to an absolute path, `command -v` first, then
+# FALLBACK_BIN_DIRS; writes the result into ${var_name}; fails with a
+# message naming every place searched
+resolve_dependency() {  # -------------------------------------------------------
+    local cmd="$1"
+    local var_name="$2"
+    local resolved="" dir
+
+    resolved="$(command -v "${cmd}" 2>/dev/null || true)"
+    if [[ -z "${resolved}" ]]; then
+        for dir in "${FALLBACK_BIN_DIRS[@]}"; do
+            if [[ -x "${dir}/${cmd}" ]]; then
+                resolved="${dir}/${cmd}"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "${resolved}" ]]; then
+        printf '%s not found on PATH or in %s' \
+            "${cmd}" "${FALLBACK_BIN_DIRS[*]}" \
+            | kamilog logger error "${LOGGER_ROOT}" >&2
+        return 1
+    fi
+
+    printf -v "${var_name}" '%s' "${resolved}"
+    printf '%s resolved: %s' "${cmd}" "${resolved}" \
+        | kamilog logger succ "${LOGGER_ROOT}" >&2
+}
+
 check_dependencies() {  # ------------------------------------------------------
-    local cmd
+    local cmd var_name
     local -a missing=()
 
     for cmd in "${REQUIRED_COMMANDS[@]}"; do
-        if command -v "${cmd}" >/dev/null 2>&1; then
-            printf '%s found' "${cmd}" \
-                | kamilog logger succ "${LOGGER_ROOT}" >&2
-        else
-            printf '%s not found' "${cmd}" \
-                | kamilog logger error "${LOGGER_ROOT}" >&2
+        case "${cmd}" in
+            git) var_name="GIT_BIN" ;;
+            curl) var_name="CURL_BIN" ;;
+            jq) var_name="JQ_BIN" ;;
+        esac
+        if ! resolve_dependency "${cmd}" "${var_name}"; then
             missing+=("${cmd}")
         fi
     done
@@ -208,7 +248,7 @@ build_chat_request() {  # ------------------------------------------------------
     local user="$2"
     local disable_md_syntax="$3"  # normalized "true" or "false"
 
-    jq -n \
+    "${JQ_BIN}" -n \
         --arg query "${diff}" \
         --arg user "${user}" \
         --argjson disable_md_syntax "${disable_md_syntax}" '{
@@ -225,7 +265,7 @@ build_chat_request() {  # ------------------------------------------------------
 # resolves \uXXXX escapes and UTF-16 surrogate pairs (emoji) on its own
 extract_answer() {  # ----------------------------------------------------------
     local json="$1"
-    jq -r '.answer' <<<"${json}"
+    "${JQ_BIN}" -r '.answer' <<<"${json}"
 }
 
 
@@ -233,7 +273,7 @@ extract_answer() {  # ----------------------------------------------------------
 extract_json_field() {  # ------------------------------------------------------
     local json="$1"
     local key="$2"
-    jq -r --arg key "${key}" '.[$key]' <<<"${json}"
+    "${JQ_BIN}" -r --arg key "${key}" '.[$key]' <<<"${json}"
 }
 
 
@@ -252,7 +292,7 @@ call_dify_chat() {  # ----------------------------------------------------------
         runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
     fi
 
-    if ! response="$("${runner[@]}" curl -sS \
+    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
         --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
@@ -296,7 +336,7 @@ call_dify_info() {  # ----------------------------------------------------------
         runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
     fi
 
-    if ! response="$("${runner[@]}" curl -sS \
+    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
         --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
@@ -371,7 +411,7 @@ is_generation_allowed() {  # ---------------------------------------------------
 
 # prints the staged diff on stdout; empty output means nothing is staged
 read_staged_diff() {  # --------------------------------------------------------
-    git diff --cached
+    "${GIT_BIN}" diff --cached
 }
 
 
