@@ -39,7 +39,7 @@ kamilog() {
 
 
 # constant  ####################################################################
-readonly LOGGER_ROOT="KCSHook"  # every section without a name of its own
+readonly LOGGER_ROOT="KCSH"  # every section without a name of its own
 
 
 # verification  ################################################################
@@ -66,22 +66,21 @@ check_dependencies() {  # ------------------------------------------------------
 }
 
 
-# Fixme KCC -> KCS
-# fills KCC_DIFY_API_SECRET_KEY and KCC_DIFY_SERVICE_API_ENDPOINT;
+# fills KCSH_DIFY_API_SECRET_KEY and KCSH_DIFY_SERVICE_API_ENDPOINT;
 # the key is never printed
 resolve_config() {  # ----------------------------------------------------------
     local has_error=false
 
-    KCC_DIFY_API_SECRET_KEY="${KCC_DIFY_API_SECRET_KEY-}"
-    if [[ -z "${KCC_DIFY_API_SECRET_KEY}" ]]; then
-        printf 'KCC_DIFY_API_SECRET_KEY unset' \
+    KCSH_DIFY_API_SECRET_KEY="${KCSH_DIFY_API_SECRET_KEY-}"
+    if [[ -z "${KCSH_DIFY_API_SECRET_KEY}" ]]; then
+        printf 'KCSH_DIFY_API_SECRET_KEY unset' \
             | kamilog logger error "${LOGGER_ROOT}"
         has_error=true
     fi
 
-    KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT-}"
-    if [[ -z "${KCC_DIFY_SERVICE_API_ENDPOINT}" ]]; then
-        printf 'KCC_DIFY_SERVICE_API_ENDPOINT unset' \
+    KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT-}"
+    if [[ -z "${KCSH_DIFY_SERVICE_API_ENDPOINT}" ]]; then
+        printf 'KCSH_DIFY_SERVICE_API_ENDPOINT unset' \
             | kamilog logger error "${LOGGER_ROOT}"
         has_error=true
     fi
@@ -89,7 +88,7 @@ resolve_config() {  # ----------------------------------------------------------
     if [[ "${has_error}" == true ]]; then
         return 1
     fi
-    KCC_DIFY_SERVICE_API_ENDPOINT="${KCC_DIFY_SERVICE_API_ENDPOINT%/}"
+    KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT%/}"
 }
 
 
@@ -208,13 +207,13 @@ call_dify_chat() {  # ----------------------------------------------------------
     body="$(build_chat_request "${diff}" "${DIFY_USER}")"
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
-        -X POST "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
-        -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
+        -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
+        -H "Authorization: Bearer ${KCSH_DIFY_API_SECRET_KEY}" \
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
         printf 'request to %s failed' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
+            "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
     fi
@@ -224,7 +223,7 @@ call_dify_chat() {  # ----------------------------------------------------------
 
     if [[ "${http_status}" != 2* ]]; then
         printf 'returned HTTP %s: %s' \
-            "${http_status}" "${KCC_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
+            "${http_status}" "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
     fi
@@ -246,11 +245,11 @@ call_dify_info() {  # ----------------------------------------------------------
     local response http_status
 
     if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
-        -X GET "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
-        -H "Authorization: Bearer ${KCC_DIFY_API_SECRET_KEY}" \
+        -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
+        -H "Authorization: Bearer ${KCSH_DIFY_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
         printf 'request to %s failed' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" \
+            "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
     fi
@@ -260,7 +259,7 @@ call_dify_info() {  # ----------------------------------------------------------
 
     if [[ "${http_status}" != 2* ]]; then
         printf '%s returned HTTP %s' \
-            "${KCC_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" \
+            "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" \
             | kamilog logger error "${LOGGER_DIFY}"
         return 1
     fi
@@ -357,8 +356,8 @@ usage:
   ~~ --help|--version       print help/version
 
 environment:
-  KCC_DIFY_API_SECRET_KEY         required; the Dify Service API key
-  KCC_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
+  KCSH_DIFY_API_SECRET_KEY         required; the Dify Service API key
+  KCSH_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
   SKIP_KAYE_COMMIT_SENSE           any non-empty value skips generation
 "
 
