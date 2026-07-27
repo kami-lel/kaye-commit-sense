@@ -412,7 +412,7 @@ main() {  # --------------------------------------------------------------------
             return 0
             ;;
         "")
-            # BUG fix & simplify these logics
+            # Bug fix & simplify these logics
             # no message file, so generation is impossible; fall to the usage
             ;;
         --)
