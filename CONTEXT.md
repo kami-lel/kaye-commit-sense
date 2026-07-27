@@ -1,6 +1,6 @@
 # commit-sense-via-dify CONTEXT
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 
 Descriptive knowledge of what this project is and how it is meant to work. For
 behavioral rules and commands, see [AGENTS.md](AGENTS.md).
@@ -46,8 +46,12 @@ warns that a blocking request may be cut off after 100 seconds, so the request
 carries a timeout and the script fails closed rather than emitting an empty
 message.
 
-Configuration arrives through the environment: `DIFY_API_KEY`,
-`DIFY_BASE_URL`, and `DIFY_USER`. No credential is stored in the repository.
+Configuration arrives through the environment, every name prefixed `KCSH_`:
+`KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
+required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
+`KCSH_DISABLE_MD_SYNTAX` (default `False`, forwarded to the request as
+`inputs.disable_md_syntax`) are optional. The user identifier is hardcoded to
+`"user"`. No credential is stored in the repository.
 
 ## Components
 
@@ -115,7 +119,7 @@ graph TD
   F --> G[write into the message file]
 ```
 
-Feedback during the blocking call is a spinner drawn on `stderr`, so the
+Feedback during the blocking call is `kamilog` logging on `stderr`, so the
 message file stays the sole product of the run.
 
 ## Hook Stage
@@ -196,32 +200,37 @@ command to confirm the environment is ready before relying on the hook.
 All components are now implemented:
 
 - **`--verify` preflight** ✓ — checks dependencies, resolves configuration,
-  calls `GET /info`, and confirms the app mode is `advanced-chat`. Reports
-  each check on stderr and exits non-zero on first failure.
-- **hook gate** ✓ — skips generation when `COMMIT_SENSE_SKIP` is set, when
+  calls `GET /info`, and confirms the app mode is `advanced-chat`. Logs the
+  resolved API endpoint, request timeout, and Markdown-syntax setting, then
+  reports each check on stderr and exits non-zero on first failure.
+- **hook gate** ✓ — skips generation when `KCSH_ENABLE_SKIPPING` is set, when
   `$2` indicates reuse (message/merge/squash/commit), or when the staged diff
   is empty.
-- **generation and message write** ✓ — captures staged diff, shows stderr
-  spinner during the blocking call (managed via trap on all exit paths),
-  prepends the answer above existing message via atomic temp-file-and-mv.
-  Fails closed on any error; never writes an empty message.
-- **environment variables** — updated to use `KCC_DIFY_API_SECRET_KEY` and
-  `KCC_DIFY_SERVICE_API_ENDPOINT`; the user identifier is hardcoded to
-  `"user"` and no longer configurable via environment.
+- **generation and message write** ✓ — captures staged diff, logs progress on
+  stderr via `kamilog` during the blocking call, prepends the answer above
+  the existing message via atomic temp-file-and-mv. Fails closed on any
+  error; never writes an empty message.
+- **environment variables** — every name is prefixed `KCSH_`:
+  `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
+  required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
+  `KCSH_DISABLE_MD_SYNTAX` (default `False`) are optional. The user
+  identifier is hardcoded to `"user"` and not configurable.
 - **stage split** ✓ — `run_hook` reduced to orchestration over
-  `is_generation_allowed`, `read_staged_diff`, `generate_message`,
-  `generate_message_from_file`, and `write_message_file`.
+  `is_generation_allowed`, `read_staged_diff`, `generate_message`, and
+  `write_message_file`.
 - **per-module logging** ✓ — each script section owns its own `kamilog`
-  logger name (`KCSHook.env`, `KCSHook.dify`, `KCSHook.spinner`,
-  `KCSHook.stages`, `KCSHook`) in place of one flat logger name.
+  logger name (`LOGGER_ROOT="KCSH"`, `KCSH.dify`, `KCSH.git`) in place of one
+  flat logger name.
 
 ## Runtime Expectations
 
 - the working directory is the repository root, so relative paths resolve there
-- the environment supplies `KCC_DIFY_API_SECRET_KEY` and
-  `KCC_DIFY_SERVICE_API_ENDPOINT`; the user identifier is hardcoded as `"user"`
-- `COMMIT_SENSE_SKIP` (any non-empty value) short-circuits the run, since
+- the environment supplies `KCSH_DIFY_SERVICE_API_ENDPOINT` and
+  `KCSH_DIFY_SERVICE_API_SECRET_KEY`; the user identifier is hardcoded as `"user"`
+- `KCSH_ENABLE_SKIPPING` (any non-empty value) short-circuits the run, since
   `--no-verify` does not affect `prepare-commit-msg`
+- `KCSH_REQUEST_TIMEOUT_SEC` and `KCSH_DISABLE_MD_SYNTAX` fall back to `45`
+  and `False` respectively when unset
 - the run is non-interactive — feedback goes to `stderr`, never `stdout`
 - the exit code is `0` on success or a deliberate skip, non-zero on failure, so
   the caller decides whether a Dify outage blocks the commit

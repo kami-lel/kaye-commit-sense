@@ -13,7 +13,7 @@ generates Git commit messages from the staged diff via a Dify app. See
 ## Scope
 
 - keep all logic in one file — `kaye-commit-sense-hook.sh`
-- add no runtime dependencies beyond `git`, `curl`, and a POSIX shell
+- add no runtime dependencies beyond `git`, `curl`, `jq`, and a POSIX shell
 - target **Bash**, invoked as a Git commit hook
 
 ## Code Style
@@ -22,19 +22,23 @@ generates Git commit messages from the staged diff via a Dify app. See
 - enable `set -euo pipefail` near the top for safe failure
 - quote all variable expansions; prefer `"${var}"` form
 - read Dify credentials and endpoints from the environment, never hardcode
+- give every environment variable the `KCSH_` prefix (e.g.
+  `KCSH_DIFY_SERVICE_API_ENDPOINT`, `KCSH_REQUEST_TIMEOUT_SEC`); optional ones
+  resolve a default inside `resolve_config`, never at the point of use
 - keep visual feedback on `stderr` so it never pollutes the commit message
-- give each script section its own `kamilog` logger name, `KCSHook.<section>`
-  (e.g. `KCSHook.dify`, `KCSHook.spinner`), and use the bare `KCSHook` name
-  only at the entry point
+- give each script section its own `kamilog` logger name, `${LOGGER_ROOT}.<section>`
+  (e.g. `KCSH.dify`, `KCSH.git`), and use the bare `LOGGER_ROOT` (`KCSH`) only
+  at the entry point
 - messages piped to `kamilog` carry no trailing newline; `kamilog` adds its own
 
 ## Testing Instructions
 
 - lint the script: `shellcheck kaye-commit-sense-hook.sh`
-- smoke-test the hook: stage a change, run `COMMIT_SENSE_SKIP=1 git commit` to
-  verify the hook wires correctly without invoking Dify (opt-out works)
-- demo fixtures live under `demos/diffs/`, sourced by the hook script's public
-  stage functions rather than exercised through a unit-test suite
+- smoke-test the hook: stage a change, run `KCSH_ENABLE_SKIPPING=1 git commit`
+  to verify the hook wires correctly without invoking Dify (opt-out works)
+- demo fixtures live under `examples/diffs/`, each paired with a runnable
+  demo script under `examples/` that sources the hook script's public stage
+  functions rather than exercising them through a unit-test suite
 
 ## Security Considerations
 

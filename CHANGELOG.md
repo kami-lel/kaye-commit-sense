@@ -1,7 +1,7 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-Fixme rewrite in-script bash docs
+fixme rewrite in-script bash function docs
 Fixme use new hupy version, version uniform in stub & script
 todo mpl UT
 -->
@@ -25,49 +25,63 @@ todo mpl UT
 ### Added
 
 - `--verify` preflight check: validates dependencies, configuration, and Dify app mode
-- hook gate checks: skip generation for COMMIT_SENSE_SKIP, reused commits, and empty diffs
-- message generation: blocking call to Dify with stderr spinner feedback
+- hook gate checks: skip generation for `KCSH_ENABLE_SKIPPING`, reused commits, and empty diffs
+- message generation: blocking call to Dify, with `kamilog` progress feedback on stderr
 - atomic message write: prepend generated answer via temporary file and atomic move
 - setup and usage documentation in `README.md`
-- environment variable verification in `--verify` mode
-- sample diff fixtures under `demos/diffs/` for future demo scripts
-- optional `kamilog` integration: structured `info`/`error` logging throughout
-  the hook, degrading to a no-op shim when `kamilog` is not installed
+- environment variable verification in `--verify` mode, now also logging the
+  resolved API endpoint, request timeout, and Markdown-syntax setting
+- sample diff fixtures under `examples/diffs/`, each paired with a runnable
+  demo script under `examples/` that exercises message generation against it
+- optional `kamilog` integration: structured logging throughout the hook,
+  degrading to a no-op shim when `kamilog` is not installed
 - `kamilog` "done" log line on a successful hook run
 - reusable run stages extracted from `run_hook`: `is_generation_allowed`,
-  `read_staged_diff`, `generate_message`, `generate_message_from_file`, and
-  `write_message_file`, each callable on its own by a future demo
-- `generate_message_from_file`: turns a diff already saved to a file into a
-  commit message, without a staged index
+  `read_staged_diff`, `generate_message`, and `write_message_file`, each
+  callable on its own by a demo script
+- `KCSH_REQUEST_TIMEOUT_SEC` environment variable: configures the Dify
+  request timeout, in seconds; defaults to `45`
+- `KCSH_DISABLE_MD_SYNTAX` environment variable: tells the Dify app to skip
+  Markdown syntax in the generated message; defaults to `False`
 
 ### Changed
 
-- environment variable names now use `KCC_DIFY_API_SECRET_KEY` and
-  `KCC_DIFY_SERVICE_API_ENDPOINT` per KamiCommitContext naming convention
+- environment variable names now use the `KCSH_` prefix throughout —
+  `KCSH_DIFY_SERVICE_API_ENDPOINT`, `KCSH_DIFY_SERVICE_API_SECRET_KEY`, and
+  `KCSH_ENABLE_SKIPPING` (the skip-generation toggle, renamed from
+  `SKIP_KAYE_COMMIT_SENSE`)
 - user identifier hardcoded to `"user"` (no longer configurable via environment)
 - updated all documentation to reflect completed implementation
 - renamed `prepare-commit-msg.sh` to `prepare-commit-msg` to match its
   installed hook name
-- `run_hook` reduced to orchestration over the new stage functions, behavior
+- `run_hook` reduced to orchestration over the stage functions, behavior
   unchanged
-- `kamilog` logger names split per module (`KCSHook.env`, `KCSHook.dify`,
-  `KCSHook.spinner`, `KCSHook.stages`, `KCSHook`) in place of one flat
+- `kamilog` logger names consolidated under `LOGGER_ROOT="KCSH"`, with
+  sub-loggers `KCSH.dify` and `KCSH.git` in place of the earlier flat
   `LOGGER_NAME`
 - messages piped to `kamilog` no longer carry a trailing newline
 - section banners inside the script use a consistent dash-ruled sub-heading in
   place of ad hoc inline dividers
 - `USAGE_TEXT` relocated next to `main`, grouped with the rest of the
   entry-point section; `VERSION` moved back to the top of the script
+- `run_verify` moved ahead of the Dify section, so setup checks read before usage
+- diff fixtures relocated from `demos/diffs/` to `examples/diffs/`
 
 ### Deprecated
 
 ### Removed
 
 - unit-test suite (`tests/test-commit-sense-via-dify.sh`) and its `tests/`
-  directory; the hook script's public stage functions remain available for a
-  future demo to source
+  directory; the hook script's public stage functions remain available for
+  demo scripts to source
+- stderr spinner utility, in favor of `kamilog` progress feedback
+- `generate_message_from_file`, an unused stage for generating from a diff
+  already saved to a file
 
 ### Fixed
+
+- `--verify` now checks for `jq` before parsing any JSON, instead of failing
+  deeper in the check with a confusing error
 
 ### Security
 
