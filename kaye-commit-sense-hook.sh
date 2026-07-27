@@ -50,6 +50,9 @@ readonly LOGGER_ROOT="KCSH"  # every section without a name of its own
 # every command the run depends on
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
+# optional backstop beyond --max-time; GNU-only, degrades to curl alone
+_TIMEOUT_BIN="$(command -v timeout 2>/dev/null || true)"
+
 check_dependencies() {  # ------------------------------------------------------
     local cmd
     local -a missing=()
@@ -101,7 +104,7 @@ resolve_config() {  # ----------------------------------------------------------
     fi
     KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT%/}"
 
-    # default kept below Dify's 100-second blocking cutoff
+    # default kept below Dify's 100s cutoff; only no-op paths meet 2s
     KCSH_REQUEST_TIMEOUT_SEC="${KCSH_REQUEST_TIMEOUT_SEC:-45}"
     KCSH_DISABLE_MD_SYNTAX="${KCSH_DISABLE_MD_SYNTAX:-False}"
 }
@@ -236,11 +239,18 @@ extract_json_field() {  # ------------------------------------------------------
 call_dify_chat() {  # ----------------------------------------------------------
     local diff="$1"
     local body response http_status answer
+    local -a runner=()
 
     body="$(build_chat_request "${diff}" "${DIFY_USER}" \
         "$(is_md_syntax_disabled)")"
 
-    if ! response="$(curl -sS --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
+    # hard kill if curl ever ignores its own --max-time
+    if [[ -n "${_TIMEOUT_BIN}" ]]; then
+        runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
+    fi
+
+    if ! response="$("${runner[@]}" curl -sS \
+        --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -H 'Content-Type: application/json' \
@@ -277,8 +287,14 @@ call_dify_chat() {  # ----------------------------------------------------------
 # non-2xx status
 call_dify_info() {  # ----------------------------------------------------------
     local response http_status
+    local -a runner=()
 
-    if ! response="$(curl -sS --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
+    if [[ -n "${_TIMEOUT_BIN}" ]]; then
+        runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
+    fi
+
+    if ! response="$("${runner[@]}" curl -sS \
+        --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
