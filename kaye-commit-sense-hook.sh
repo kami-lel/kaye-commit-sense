@@ -25,10 +25,10 @@ kamilog() {
     fi
     case "$1" in
         cb|cb0)
-            printf '# %s\n' "$(cat)"
+            printf '# %s' "$(cat)"
             ;;
         logger)
-            printf '%s:\t%s\n' "$2" "$(cat)"
+            printf '%s:\t%s' "$2" "$(cat)"
             ;;
         *)
             cat  # no bin found, pass stdin through as-is
