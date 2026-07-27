@@ -65,6 +65,10 @@ todo mpl UT
   entry-point section; `VERSION` moved back to the top of the script
 - `run_verify` moved ahead of the Dify section, so setup checks read before usage
 - diff fixtures relocated from `demos/diffs/` to `examples/diffs/`
+- `check_dependencies` now logs a `succ`/`error` line per required command as
+  each is checked, then one `pass`/`fail` summary line for the whole check;
+  `run_verify` gates on this single unified check instead of a separate
+  hardcoded `jq` pre-check ahead of it
 
 ### Deprecated
 
