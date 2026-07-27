@@ -97,6 +97,19 @@ resolve_config() {  # ----------------------------------------------------------
 }
 
 
+# normalizes KCSH_DISABLE_MD_SYNTAX to a lowercase "true"/"false" jq boolean
+is_md_syntax_disabled() {  # ---------------------------------------------------
+    case "${KCSH_DISABLE_MD_SYNTAX,,}" in
+        true|1|yes)
+            printf 'true'
+            ;;
+        *)
+            printf 'false'
+            ;;
+    esac
+}
+
+
 # checks dependencies, configuration, and the backend; writes nothing
 run_verify() {  # --------------------------------------------------------------
     local mode
@@ -174,10 +187,14 @@ readonly DIFY_USER="user"
 build_chat_request() {  # ------------------------------------------------------
     local diff="$1"
     local user="$2"
+    local disable_md_syntax="$3"  # normalized "true" or "false"
 
-    jq -n --arg query "${diff}" --arg user "${user}" '{
+    jq -n \
+        --arg query "${diff}" \
+        --arg user "${user}" \
+        --argjson disable_md_syntax "${disable_md_syntax}" '{
         query: $query,
-        inputs: {},
+        inputs: { disable_md_syntax: $disable_md_syntax },
         response_mode: "blocking",
         auto_generate_name: false,
         user: $user
@@ -207,7 +224,8 @@ call_dify_chat() {  # ----------------------------------------------------------
     local diff="$1"
     local body response http_status answer
 
-    body="$(build_chat_request "${diff}" "${DIFY_USER}")"
+    body="$(build_chat_request "${diff}" "${DIFY_USER}" \
+        "$(is_md_syntax_disabled)")"
 
     if ! response="$(curl -sS --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
@@ -359,13 +377,11 @@ usage:
   ~~ --help|--version       print help/version
 
 environment:
-  KCSH_DIFY_SERVICE_API_SECRET_KEY         required; the Dify Service API key
-  KCSH_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
-  KCSH_ENABLE_SKIPPING              any non-empty value skips generation
-  KCSH_REQUEST_TIMEOUT_SEC          optional; Dify request timeout, in
-                                     seconds; default 45
-  KCSH_DISABLE_MD_SYNTAX            optional; disables Markdown syntax in
-                                     the generated message; default False
+  KCSH_DIFY_SERVICE_API_SECRET_KEY  Service API key of Dify App
+  KCSH_DIFY_SERVICE_API_ENDPOINT    Service API address of Dify App
+  KCSH_ENABLE_SKIPPING              any non-empty value skips generation, optional
+  KCSH_REQUEST_TIMEOUT_SEC          Dify request timeout, in seconds; optional, default=45
+  KCSH_DISABLE_MD_SYNTAX            disables Markdown syntax in the generated message; optional, default=False
 "
 
 
