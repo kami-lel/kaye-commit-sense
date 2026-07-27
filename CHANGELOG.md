@@ -1,11 +1,11 @@
 # kaye-commit-sense CHANGELOG
 
 <!--
-todo implements UTs
 Bug `#` as line beginning will comment out the line during editor stage
-fixme hook logger messages are commented out
-Todo add AI maintenance sigil
 Fixme add/del/balance logic is wrong
+fixme hook logger messages are commented out
+todo add AI maintenance sigil
+todo implements UTs
 -->
 
 [^format]
