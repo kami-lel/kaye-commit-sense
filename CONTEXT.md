@@ -1,6 +1,6 @@
 # commit-sense-via-dify CONTEXT
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 
 Descriptive knowledge of what this project is and how it is meant to work. For
 behavioral rules and commands, see [AGENTS.md](AGENTS.md).
@@ -15,7 +15,7 @@ remember or trigger it by hand.
 
 ## Design Status
 
-Implementation is complete. All components are functional and tested.
+Implementation is complete. All components are functional.
 
 | Decision | State |
 | --- | --- |
@@ -46,8 +46,12 @@ warns that a blocking request may be cut off after 100 seconds, so the request
 carries a timeout and the script fails closed rather than emitting an empty
 message.
 
-Configuration arrives through the environment: `DIFY_API_KEY`,
-`DIFY_BASE_URL`, and `DIFY_USER`. No credential is stored in the repository.
+Configuration arrives through the environment, every name prefixed `KCSH_`:
+`KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
+required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
+`KCSH_DISABLE_MD_SYNTAX` (default `False`, forwarded to the request as
+`inputs.disable_md_syntax`) are optional. The user identifier is hardcoded to
+`"user"`. No credential is stored in the repository.
 
 ## Components
 
@@ -100,71 +104,6 @@ conflates behavior selection with the settings channel already used by
 implicit and the hook path is the special case, which does not match actual
 usage frequency.
 
-## Partially Implemented: Stage Split and Fixture Example
-
-Status: **stage split done; fixture example, test repoint, and README note
-still open.**
-
-`run_hook` welded five concerns into one function — the skip gates, capturing
-`git diff --cached`, resolving configuration, calling Dify, and rewriting the
-message file. Nothing in the script could turn *a diff already in hand* into
-*a commit message on stdout*, so the fixtures under `tests/diffs/` could not
-be exercised end to end without staging them into a real repository.
-
-The intended outcome is a runnable example that feeds
-`tests/diffs/single-reorder.diff` through the real Dify backend and prints the
-generated message to stdout. The example sources the script rather than adding
-a command-line mode, since the sourced-versus-executed guard around `main`
-already supports that and no new public interface is wanted.
-
-### Stages
-
-`run_hook` is now split into five functions, behavior unchanged, with
-`run_hook` reduced to orchestration over them:
-
-| Stage | Responsibility |
-| --- | --- |
-| `is_generation_allowed SOURCE` | the `COMMIT_SENSE_SKIP` check and the `message`/`merge`/`squash`/`commit` case; `0` means proceed |
-| `read_staged_diff` | wraps `git diff --cached`, prints the diff on stdout |
-| `generate_message DIFF` | resolves configuration, draws the spinner, calls Dify, prints the message on stdout |
-| `generate_message_from_file DIFF_FILE` | reads a diff from a file, then hands it to `generate_message` |
-| `write_message_file ANSWER MSG_FILE` | the `mktemp` / prepend / `mv` sequence |
-
-`generate_message` is the reusable seam — the one an example, a fixture run, or
-a future batch driver can call without a staged index or a message file.
-`generate_message_from_file` extends that seam to a diff already saved on
-disk, which is the shape the `tests/diffs/` fixtures are in.
-`resolve_config`, `call_dify_chat`, and `spinner` are reused untouched; the
-split is pure extraction. The skip semantics the test suite asserts (exit `0`
-on every skip path) survive it.
-
-### Steps
-
-1. split `run_hook` into the stages above — `kaye-commit-sense-hook.sh` — done
-2. rebuild `run_hook` as orchestration over them, leaving `main` and the
-   argument-dispatch table untouched — `kaye-commit-sense-hook.sh` — done
-3. add `examples/single-reorder-demo.sh` — resolves the repository root from
-   `BASH_SOURCE`, sources the hook script, reads the fixture, calls
-   `generate_message`, prints the message on stdout, exits non-zero on
-   failure — still open
-4. repoint `tests/test-commit-sense-via-dify.sh` at
-   `../kaye-commit-sense-hook.sh`; it still sources the pre-rename
-   `commit-sense-via-dify.sh` and therefore cannot run at all — still open
-5. note the example in `README.md` and record the change under `[Unreleased]`
-   in `CHANGELOG.md` — still open
-
-### Verification
-
-- `shellcheck kaye-commit-sense-hook.sh examples/single-reorder-demo.sh`
-- `bash tests/test-commit-sense-via-dify.sh` — passes once Step 4 lands
-- with credentials exported, `./examples/single-reorder-demo.sh` prints a
-  commit message on stdout and exits `0`; without them it fails non-zero with
-  a readable error and prints nothing on stdout
-- `COMMIT_SENSE_SKIP=1 git commit` still short-circuits
-
-The example requires `KCC_DIFY_API_SECRET_KEY` and
-`KCC_DIFY_SERVICE_API_ENDPOINT`, since it performs a real Dify call.
-
 ## Data Flow
 
 ```mermaid
@@ -180,7 +119,7 @@ graph TD
   F --> G[write into the message file]
 ```
 
-Feedback during the blocking call is a spinner drawn on `stderr`, so the
+Feedback during the blocking call is `kamilog` logging on `stderr`, so the
 message file stays the sole product of the run.
 
 ## Hook Stage
@@ -258,37 +197,40 @@ command to confirm the environment is ready before relying on the hook.
 
 ## Implementation Complete
 
-All components are now implemented and tested:
+All components are now implemented:
 
 - **`--verify` preflight** ✓ — checks dependencies, resolves configuration,
-  calls `GET /info`, and confirms the app mode is `advanced-chat`. Reports
-  each check on stderr and exits non-zero on first failure.
-- **hook gate** ✓ — skips generation when `COMMIT_SENSE_SKIP` is set, when
+  calls `GET /info`, and confirms the app mode is `advanced-chat`. Logs the
+  resolved API endpoint, request timeout, and Markdown-syntax setting, then
+  reports each check on stderr and exits non-zero on first failure.
+- **hook gate** ✓ — skips generation when `KCSH_ENABLE_SKIPPING` is set, when
   `$2` indicates reuse (message/merge/squash/commit), or when the staged diff
-  is empty. Test suite covers all skip conditions.
-- **generation and message write** ✓ — captures staged diff, shows stderr
-  spinner during the blocking call (managed via trap on all exit paths),
-  prepends the answer above existing message via atomic temp-file-and-mv.
-  Fails closed on any error; never writes an empty message.
-- **environment variables** — updated to use `KCC_DIFY_API_SECRET_KEY` and
-  `KCC_DIFY_SERVICE_API_ENDPOINT`; the user identifier is hardcoded to
-  `"user"` and no longer configurable via environment.
+  is empty.
+- **generation and message write** ✓ — captures staged diff, logs progress on
+  stderr via `kamilog` during the blocking call, prepends the answer above
+  the existing message via atomic temp-file-and-mv. Fails closed on any
+  error; never writes an empty message.
+- **environment variables** — every name is prefixed `KCSH_`:
+  `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
+  required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
+  `KCSH_DISABLE_MD_SYNTAX` (default `False`) are optional. The user
+  identifier is hardcoded to `"user"` and not configurable.
 - **stage split** ✓ — `run_hook` reduced to orchestration over
-  `is_generation_allowed`, `read_staged_diff`, `generate_message`,
-  `generate_message_from_file`, and `write_message_file`; see
-  [Partially Implemented: Stage Split and Fixture Example](#partially-implemented-stage-split-and-fixture-example)
-  for the example and test work still open.
+  `is_generation_allowed`, `read_staged_diff`, `generate_message`, and
+  `write_message_file`.
 - **per-module logging** ✓ — each script section owns its own `kamilog`
-  logger name (`KCSHook.env`, `KCSHook.dify`, `KCSHook.spinner`,
-  `KCSHook.stages`, `KCSHook`) in place of one flat logger name.
+  logger name (`LOGGER_ROOT="KCSH"`, `KCSH.dify`, `KCSH.git`) in place of one
+  flat logger name.
 
 ## Runtime Expectations
 
 - the working directory is the repository root, so relative paths resolve there
-- the environment supplies `KCC_DIFY_API_SECRET_KEY` and
-  `KCC_DIFY_SERVICE_API_ENDPOINT`; the user identifier is hardcoded as `"user"`
-- `COMMIT_SENSE_SKIP` (any non-empty value) short-circuits the run, since
+- the environment supplies `KCSH_DIFY_SERVICE_API_ENDPOINT` and
+  `KCSH_DIFY_SERVICE_API_SECRET_KEY`; the user identifier is hardcoded as `"user"`
+- `KCSH_ENABLE_SKIPPING` (any non-empty value) short-circuits the run, since
   `--no-verify` does not affect `prepare-commit-msg`
+- `KCSH_REQUEST_TIMEOUT_SEC` and `KCSH_DISABLE_MD_SYNTAX` fall back to `45`
+  and `False` respectively when unset
 - the run is non-interactive — feedback goes to `stderr`, never `stdout`
 - the exit code is `0` on success or a deliberate skip, non-zero on failure, so
   the caller decides whether a Dify outage blocks the commit
