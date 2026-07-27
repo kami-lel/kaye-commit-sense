@@ -1,7 +1,6 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-Fixme rewrite in-script bash function docs
 todo mpl UT
 -->
 

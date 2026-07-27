@@ -8,11 +8,6 @@
 # Q.v. https://github.com/kami-lel/kaye-commit-sense
 ################################################################################
 set -euo pipefail
-
-# no pager or editor may ever wait on input here
-export GIT_PAGER=cat PAGER=cat
-
-
 readonly VERSION="0.1.0"
 
 
@@ -193,8 +188,7 @@ throb_widget_stop() {  # -------------------------------------------------------
 # END of throb-widget.sh  ######################################################
 
 
-
-# constant  ####################################################################
+export GIT_PAGER=cat PAGER=cat
 readonly LOGGER_ROOT="KCSH"  # every section without a name of its own
 
 
