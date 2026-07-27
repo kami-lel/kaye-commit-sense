@@ -302,7 +302,7 @@ readonly LOGGER_GIT="${LOGGER_ROOT}.git"
 is_generation_allowed() {  # ---------------------------------------------------
     local source="${1-}"
 
-    if [[ -n "${SKIP_KAYE_COMMIT_SENSE-}" ]]; then
+    if [[ -n "${KCSH_ENABLE_SKIPPING-}" ]]; then
         return 1  # explicit opt-out
     fi
 
@@ -358,7 +358,7 @@ usage:
 environment:
   KCSH_DIFY_SERVICE_API_SECRET_KEY         required; the Dify Service API key
   KCSH_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
-  SKIP_KAYE_COMMIT_SENSE           any non-empty value skips generation
+  KCSH_ENABLE_SKIPPING              any non-empty value skips generation
 "
 
 
