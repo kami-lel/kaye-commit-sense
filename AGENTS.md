@@ -13,7 +13,8 @@ generates Git commit messages from the staged diff via a Dify app. See
 ## Scope
 
 - keep all logic in one file — `kaye-commit-sense-hook.sh`
-- add no runtime dependencies beyond `git`, `curl`, `jq`, and a POSIX shell
+- add no runtime dependencies beyond `git`, `curl`, `jq`, `mktemp`, and a POSIX
+  shell
 - target **Bash**, invoked as a Git commit hook
 
 ## Code Style
@@ -32,9 +33,11 @@ generates Git commit messages from the staged diff via a Dify app. See
 - messages piped to `kamilog` carry no trailing newline; `kamilog` adds its own
 - export `GIT_PAGER=cat PAGER=cat` near the top, before any `git` subprocess
   call, so nothing ever waits on a pager
-- resolve `git`/`curl`/`jq` to absolute paths via `resolve_dependency` into
-  `GIT_BIN`/`CURL_BIN`/`JQ_BIN`; call sites use these variables, never the
-  bare command name
+- resolve every entry of `REQUIRED_COMMANDS` to an absolute path via
+  `resolve_dependency` into `GIT_BIN`/`CURL_BIN`/`JQ_BIN`/`MKTEMP_BIN`; call
+  sites use these variables, never the bare command name. Adding an external
+  command means adding it to `REQUIRED_COMMANDS` and to the `case` in
+  `check_dependencies` at the same time
 - open a `kamilog` progress line with `-N` before starting the throb widget,
   so the line stays open for the throb to animate on and `kamilog` is never
   called again per frame; see `start_generating_throb`/`stop_generating_throb`

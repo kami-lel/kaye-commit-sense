@@ -1,6 +1,6 @@
 # commit-sense-via-dify README
 
-<!-- Fixme rewrite README, create install & usage docs -->
+<!-- FIXME rewrite README, create install & usage docs -->
 
 > 🧠 A Dify app writes your Git commit messages from the staged diff.
 
@@ -10,7 +10,8 @@ to run as a Git commit hook.
 
 ## Prerequisites
 
-Require `bash`, `git`, `curl`, `jq`, and a **Dify** app with an API key
+Require `bash`, `git`, `curl`, `jq`, `mktemp`, and a **Dify** app with an API
+key
 
 > [!IMPORTANT]
 > Install `jq` before using this hook.

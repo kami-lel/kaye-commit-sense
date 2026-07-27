@@ -121,6 +121,11 @@ todo mpl UT
 - `write_message_file`'s temporary file is now created beside the message
   file instead of under the system temp directory, so the final `mv` stays a
   same-filesystem atomic rename instead of degrading to copy-then-unlink
+- `mktemp` is now a declared dependency: added to `REQUIRED_COMMANDS`,
+  resolved to an absolute path into `MKTEMP_BIN`, and reported by `--verify`.
+  It was previously called by bare name from `write_message_file`, so the
+  minimal `PATH` that `resolve_dependency` exists to survive left the write
+  path failing after the Dify call had already been paid for
 - `check_dependencies` now also runs on the hook path, not only under
   `--verify`, so a missing dependency is caught before generation is
   attempted instead of failing deeper with a less clear error

@@ -221,19 +221,25 @@ dependency decision is reversed: **`jq` is now required.**
 | `git` | the hook context, and the source of `git diff --cached` |
 | `curl` | the transport for `POST /chat-messages` |
 | `jq` | builds the request body and parses the reply; see [JSON Handling](#json-handling) |
+| `mktemp` | creates the temporary file `write_message_file` renames into place |
+
+`mktemp` is not itself a POSIX utility, but it is present wherever GNU
+coreutils or the BSD userland is, and hand-rolling a collision-safe temporary
+name in Bash is the same class of avoidable correctness risk that made `jq`
+required. It is declared alongside the other three rather than assumed.
 
 `--verify` checks this exact set, plus configuration, so an end user has one
 command to confirm the environment is ready before relying on the hook.
 
-Each of `git`/`curl`/`jq` is resolved to an absolute path by
+Each entry of `REQUIRED_COMMANDS` is resolved to an absolute path by
 `resolve_dependency`: `command -v` first, then a fixed fallback directory
 search (`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, `/bin`), covering
 the minimal `PATH` a GUI-launched editor process can hand a hook. The
-resolved paths land in `GIT_BIN`/`CURL_BIN`/`JQ_BIN`, which default to the
-bare command names — sourcing the script without running
+resolved paths land in `GIT_BIN`/`CURL_BIN`/`JQ_BIN`/`MKTEMP_BIN`, which
+default to the bare command names — sourcing the script without running
 `check_dependencies` first (as the `examples/` demo scripts do) still
 resolves through `PATH` normally. `--verify`'s expanded `check_hook_installation`
-stage additionally reports the resolved `bash` interpreter, these three
+stage additionally reports the resolved `bash` interpreter, these four
 paths, the active hooks directory (`git rev-parse --git-path hooks`, which
 honors `core.hooksPath`), and whether `prepare-commit-msg` and
 `kaye-commit-sense-hook.sh` are both present and executable there —

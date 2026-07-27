@@ -202,7 +202,7 @@ readonly LOGGER_ROOT="KCSH"  # every section without a name of its own
 # answers one question: can this machine run at all
 
 # every command the run depends on
-readonly -a REQUIRED_COMMANDS=(git curl jq)
+readonly -a REQUIRED_COMMANDS=(git curl jq mktemp)
 
 # probed when `command -v` fails, eg under a minimal-PATH GUI environment
 readonly -a FALLBACK_BIN_DIRS=(/usr/bin /usr/local/bin /opt/homebrew/bin /bin)
@@ -212,6 +212,7 @@ readonly -a FALLBACK_BIN_DIRS=(/usr/bin /usr/local/bin /opt/homebrew/bin /bin)
 GIT_BIN="git"
 CURL_BIN="curl"
 JQ_BIN="jq"
+MKTEMP_BIN="mktemp"
 
 # optional backstop beyond --max-time; GNU-only, degrades to curl alone
 _TIMEOUT_BIN="$(command -v timeout 2>/dev/null || true)"
@@ -254,6 +255,7 @@ check_dependencies() {  # ------------------------------------------------------
             git) var_name="GIT_BIN" ;;
             curl) var_name="CURL_BIN" ;;
             jq) var_name="JQ_BIN" ;;
+            mktemp) var_name="MKTEMP_BIN" ;;
         esac
         if ! resolve_dependency "${cmd}" "${var_name}"; then
             missing+=("${cmd}")
@@ -278,8 +280,8 @@ check_hook_installation() {  # -------------------------------------------------
     bash_bin="$(type -P bash 2>/dev/null || true)"
     printf 'interpreter: %s' "${bash_bin:-not found}" \
         | kamilog logger info "${LOGGER_ROOT}" >&2
-    printf 'dependency paths: git=%s curl=%s jq=%s' \
-        "${GIT_BIN}" "${CURL_BIN}" "${JQ_BIN}" \
+    printf 'dependency paths: git=%s curl=%s jq=%s mktemp=%s' \
+        "${GIT_BIN}" "${CURL_BIN}" "${JQ_BIN}" "${MKTEMP_BIN}" \
         | kamilog logger info "${LOGGER_ROOT}" >&2
 
     hooks_dir="$("${GIT_BIN}" rev-parse --git-path hooks 2>/dev/null || true)"
@@ -628,7 +630,7 @@ write_message_file() {  # ------------------------------------------------------
     local msg_file="$2"
     local tmp_file
 
-    tmp_file="$(mktemp "$(dirname "${msg_file}")/.XXXXXX")" || return 1
+    tmp_file="$("${MKTEMP_BIN}" "$(dirname "${msg_file}")/.XXXXXX")" || return 1
     trap 'rm -f "${tmp_file}"' RETURN
 
     {
