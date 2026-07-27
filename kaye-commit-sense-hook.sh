@@ -136,6 +136,17 @@ run_verify() {  # --------------------------------------------------------------
             | kamilog logger fail "${LOGGER_ROOT}"
         exit_code=1
     else
+        printf 'api endpoint: %s' "${KCSH_DIFY_SERVICE_API_ENDPOINT}" \
+            | kamilog logger info "${LOGGER_ROOT}"
+        printf 'request timeout: %s second' "${KCSH_REQUEST_TIMEOUT_SEC}" \
+            | kamilog logger info "${LOGGER_ROOT}"
+        if [[ "$(is_md_syntax_disabled)" == true ]]; then
+            printf 'markdown syntax: disabled' \
+                | kamilog logger info "${LOGGER_ROOT}"
+        else
+            printf 'markdown syntax: enabled' \
+                | kamilog logger info "${LOGGER_ROOT}"
+        fi
         printf 'config verified' \
             | kamilog logger pass "${LOGGER_ROOT}"
     fi
@@ -377,11 +388,11 @@ usage:
   ~~ --help|--version       print help/version
 
 environment:
-  KCSH_DIFY_SERVICE_API_SECRET_KEY  Service API key of Dify App
-  KCSH_DIFY_SERVICE_API_ENDPOINT    Service API address of Dify App
-  KCSH_ENABLE_SKIPPING              any non-empty value skips generation, optional
-  KCSH_REQUEST_TIMEOUT_SEC          Dify request timeout, in seconds; optional, default=45
+  KCSH_DIFY_SERVICE_API_SECRET_KEY  Dify Service API key of Kaye Commit Sense App
+  KCSH_DIFY_SERVICE_API_ENDPOINT    Dify Service API endpoint address of Kaye Commit Sense App
+  KCSH_REQUEST_TIMEOUT_SEC          network request timeout, in seconds; optional, default=45
   KCSH_DISABLE_MD_SYNTAX            disables Markdown syntax in the generated message; optional, default=False
+  KCSH_ENABLE_SKIPPING              whether skips this hook entirely; optional, default=False
 "
 
 
