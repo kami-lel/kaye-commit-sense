@@ -657,7 +657,7 @@ generate_message() {  # --------------------------------------------------------
 
     # -N leaves the line open, so the throb animates in place on it and
     # kamilog is never called again, once per frame
-    printf 'generating commit message ' \
+    printf 'Kaye Commit Sense generating ' \
         | kamilog logger info "${LOGGER_DIFY}" -N >&2
     throb_widget_start
 
@@ -739,12 +739,11 @@ write_message_file() {  # ------------------------------------------------------
     local tmp_file
 
     tmp_file="$("${MKTEMP_BIN}" "$(dirname "${msg_file}")/.XXXXXX")" || return 1
-    trap 'rm -f "${tmp_file}"' RETURN
 
-    {
-        printf '%s\n' "${answer}"
-        cat "${msg_file}"
-    } >"${tmp_file}" || return 1
+    if ! { printf '%s\n' "${answer}"; cat "${msg_file}"; } >"${tmp_file}"; then
+        rm -f "${tmp_file}"
+        return 1
+    fi
 
     mv "${tmp_file}" "${msg_file}"
     return "$?"
