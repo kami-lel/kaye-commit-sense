@@ -53,16 +53,24 @@ check_dependencies() {  # ------------------------------------------------------
     local -a missing=()
 
     for cmd in "${REQUIRED_COMMANDS[@]}"; do
-        if ! command -v "${cmd}" >/dev/null 2>&1; then
+        if command -v "${cmd}" >/dev/null 2>&1; then
+            printf '%s found' "${cmd}" \
+                | kamilog logger succ "${LOGGER_ROOT}"
+        else
+            printf '%s not found' "${cmd}" \
+                | kamilog logger error "${LOGGER_ROOT}"
             missing+=("${cmd}")
         fi
     done
 
     if ((${#missing[@]} > 0)); then
         printf 'missing command: %s' "${missing[*]}" \
-            | kamilog logger error "${LOGGER_ROOT}"
+            | kamilog logger fail "${LOGGER_ROOT}"
         return 1
     fi
+
+    printf 'dependencies verified' \
+        | kamilog logger pass "${LOGGER_ROOT}"
 }
 
 
