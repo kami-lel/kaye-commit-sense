@@ -124,7 +124,7 @@ run_verify() {  # --------------------------------------------------------------
             | kamilog logger fail "${LOGGER_ROOT}"
         return 1
     fi
-    # Fixme check all commands
+    # FIXME check all commands
     printf 'jq installed' \
         | kamilog logger pass "${LOGGER_ROOT}"
 
