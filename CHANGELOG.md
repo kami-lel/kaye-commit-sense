@@ -6,6 +6,7 @@ Fixme add/del/balance logic is wrong
 fixme hook logger messages are commented out
 todo add AI maintenance sigil
 todo implements UTs
+todo support chinese
 -->
 
 [^format]
