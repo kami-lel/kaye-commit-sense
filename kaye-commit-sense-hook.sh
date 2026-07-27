@@ -290,19 +290,19 @@ check_hook_installation() {  # -------------------------------------------------
 
     hooks_dir="$("${GIT_BIN}" rev-parse --git-path hooks 2>/dev/null || true)"
     if [[ -z "${hooks_dir}" ]]; then
-        printf 'could not resolve the active hooks directory' \
+        printf 'could not resolve the active hooks directory\n' \
             | kamilog logger warning "${LOGGER_ROOT}" >&2
         return 0
     fi
-    printf 'active hooks directory: %s' "${hooks_dir}" \
+    printf 'active hooks directory: %s\n' "${hooks_dir}" \
         | kamilog logger info "${LOGGER_ROOT}" >&2
 
     for file in prepare-commit-msg kaye-commit-sense-hook.sh; do
         if [[ -x "${hooks_dir}/${file}" ]]; then
-            printf '%s installed and executable' "${file}" \
+            printf '%s installed and executable\n' "${file}" \
                 | kamilog logger pass "${LOGGER_ROOT}" >&2
         else
-            printf '%s not installed or not executable at %s' \
+            printf '%s not installed or not executable at %s\n' \
                 "${file}" "${hooks_dir}" \
                 | kamilog logger warning "${LOGGER_ROOT}" >&2
         fi
@@ -319,14 +319,14 @@ resolve_config() {  # ----------------------------------------------------------
 
     KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCSH_DIFY_SERVICE_API_ENDPOINT}" ]]; then
-        printf 'KCSH_DIFY_SERVICE_API_ENDPOINT unset' \
+        printf 'KCSH_DIFY_SERVICE_API_ENDPOINT unset\n' \
             | kamilog logger error "${LOGGER_ROOT}" >&2
         has_error=true
     fi
 
     KCSH_DIFY_SERVICE_API_SECRET_KEY="${KCSH_DIFY_SERVICE_API_SECRET_KEY-}"
     if [[ -z "${KCSH_DIFY_SERVICE_API_SECRET_KEY}" ]]; then
-        printf 'KCSH_DIFY_SERVICE_API_SECRET_KEY unset' \
+        printf 'KCSH_DIFY_SERVICE_API_SECRET_KEY unset\n' \
             | kamilog logger error "${LOGGER_ROOT}" >&2
         has_error=true
     fi
@@ -376,7 +376,7 @@ run_verify() {  # --------------------------------------------------------------
     local mode info
     local -i exit_code=0
 
-    printf 'verifying environment' \
+    printf 'verifying environment\n' \
         | kamilog logger enter "${LOGGER_ROOT}" >&2
 
     # later checks parse JSON and call curl, so this one gates the rest
@@ -387,22 +387,22 @@ run_verify() {  # --------------------------------------------------------------
     check_hook_installation
 
     if ! resolve_config; then
-        printf 'config incomplete' \
+        printf 'config incomplete\n' \
             | kamilog logger fail "${LOGGER_ROOT}" >&2
         exit_code=1
     else
-        printf 'api endpoint: %s' "${KCSH_DIFY_SERVICE_API_ENDPOINT}" \
+        printf 'api endpoint: %s\n' "${KCSH_DIFY_SERVICE_API_ENDPOINT}" \
             | kamilog logger info "${LOGGER_ROOT}" >&2
-        printf 'request timeout: %s second' "${KCSH_REQUEST_TIMEOUT_SEC}" \
+        printf 'request timeout: %s second\n' "${KCSH_REQUEST_TIMEOUT_SEC}" \
             | kamilog logger info "${LOGGER_ROOT}" >&2
         if [[ "$(is_md_syntax_disabled)" == true ]]; then
-            printf 'markdown syntax: disabled' \
+            printf 'markdown syntax: disabled\n' \
                 | kamilog logger info "${LOGGER_ROOT}" >&2
         else
-            printf 'markdown syntax: enabled' \
+            printf 'markdown syntax: enabled\n' \
                 | kamilog logger info "${LOGGER_ROOT}" >&2
         fi
-        printf 'config verified' \
+        printf 'config verified\n' \
             | kamilog logger pass "${LOGGER_ROOT}" >&2
     fi
 
@@ -412,7 +412,7 @@ run_verify() {  # --------------------------------------------------------------
 
     # -N leaves the line open, so the throb animates in place on it and
     # kamilog is never called again, once per frame
-    printf 'reaching Dify App by /info endpoint ' \
+    printf 'reaching Dify App by /info endpoint \n' \
         | kamilog logger enter "${LOGGER_ROOT}" -N >&2
     throb_widget_start
 
@@ -425,19 +425,19 @@ run_verify() {  # --------------------------------------------------------------
         printf '\n' >&2
         mode="$(extract_json_field "${info}" "mode")"
         if [[ "${mode}" != "advanced-chat" ]]; then
-            printf 'app mode is %s, expected advanced-chat' "${mode}" \
+            printf 'app mode is %s, expected advanced-chat\n' "${mode}" \
                 | kamilog logger error "${LOGGER_ROOT}" >&2
             exit_code=1
         else
-            printf 'app mode is: %s' "${mode}" \
+            printf 'app mode is: %s\n' "${mode}" \
                 | kamilog logger info "${LOGGER_ROOT}" >&2
-            printf 'Dify App reachable' \
+            printf 'Dify App reachable\n' \
                 | kamilog logger pass "${LOGGER_ROOT}" >&2
         fi
     fi
 
     if ((exit_code == 0)); then
-        printf 'all verified' \
+        printf 'all verified\n' \
             | kamilog logger "done" "${LOGGER_ROOT}" >&2
     fi
 
@@ -542,7 +542,7 @@ call_dify_chat() {  # ----------------------------------------------------------
         -H 'Content-Type: application/json' \
         -d "${body}" \
         -w $'\n%{http_code}')"; then
-        printf 'request to %s failed' \
+        printf 'request to %s failed\n' \
             "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
             | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
@@ -552,7 +552,7 @@ call_dify_chat() {  # ----------------------------------------------------------
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf 'returned HTTP %s: %s' \
+        printf 'returned HTTP %s: %s\n' \
             "${http_status}" "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
             | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
@@ -560,7 +560,7 @@ call_dify_chat() {  # ----------------------------------------------------------
 
     answer="$(extract_answer "${response}")"
     if [[ -z "${answer}" || "${answer}" == "null" ]]; then
-        printf 'no answer in Dify reply' \
+        printf 'no answer in Dify reply\n' \
             | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
     fi
@@ -603,7 +603,7 @@ call_dify_info() {  # ----------------------------------------------------------
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
-        printf 'request to %s failed' \
+        printf 'request to %s failed\n' \
             "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
             | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
@@ -613,7 +613,7 @@ call_dify_info() {  # ----------------------------------------------------------
     response="${response%$'\n'*}"
 
     if [[ "${http_status}" != 2* ]]; then
-        printf '%s returned HTTP %s' \
+        printf '%s returned HTTP %s\n' \
             "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" \
             | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
@@ -653,13 +653,13 @@ generate_message() {  # --------------------------------------------------------
     fi
 
     # logs go to stderr; stdout belongs to the answer alone
-    # printf 'requesting Dify (waiting up to %s seconds)' \
+    # printf 'requesting Dify (waiting up to %s seconds)\n' \
     #     "${KCSH_REQUEST_TIMEOUT_SEC}" \
     #     | kamilog logger enter "${LOGGER_DIFY}" >&2
 
     # -N leaves the line open, so the throb animates in place on it and
     # kamilog is never called again, once per frame
-    printf 'Kaye Commit Sense generating ' \
+    printf 'Kaye Commit Sense generating \n' \
         | kamilog logger info "${LOGGER_DIFY}" -N >&2
     throb_widget_start
 
@@ -671,7 +671,7 @@ generate_message() {  # --------------------------------------------------------
     throb_widget_stop
     printf '\n' >&2
 
-    # printf 'message generated' \
+    # printf 'message generated\n' \
     #     | kamilog logger succ "${LOGGER_DIFY}" >&2
 
     printf '%s' "${answer}"
@@ -812,13 +812,13 @@ run_hook() {  # ----------------------------------------------------------------
     fi
 
     if ! check_dependencies; then
-        printf 'skipping generation, dependency missing' \
+        printf 'skipping generation, dependency missing\n' \
             | kamilog logger error "${LOGGER_ROOT}" >&2
         return 0
     fi
 
     if ! diff="$(read_staged_diff)"; then
-        printf 'skipping generation, could not read staged diff' \
+        printf 'skipping generation, could not read staged diff\n' \
             | kamilog logger error "${LOGGER_ROOT}" >&2
         return 0
     fi
@@ -828,18 +828,18 @@ run_hook() {  # ----------------------------------------------------------------
     fi
 
     if ! answer="$(generate_message "${diff}")"; then
-        printf 'skipping generation, message generation failed' \
+        printf 'skipping generation, message generation failed\n' \
             | kamilog logger error "${LOGGER_ROOT}" >&2
         return 0
     fi
 
     if ! write_message_file "${answer}" "${msg_file}"; then
-        printf 'skipping generation, could not write message file' \
+        printf 'skipping generation, could not write message file\n' \
             | kamilog logger error "${LOGGER_ROOT}" >&2
         return 0
     fi
 
-    printf 'Message Generated' | kamilog logger "done" "${LOGGER_ROOT}" >&2
+    printf 'Message Generated\n' | kamilog logger "done" "${LOGGER_ROOT}" >&2
     return 0
 }
 
@@ -901,7 +901,7 @@ main() {  # --------------------------------------------------------------------
         # empty: no message file, generation is impossible, fall to usage
         # dash-prefixed: unknown mode, log then fall to usage
         if [[ -n "${1-}" ]]; then
-            printf 'unknown mode: %s' "$1" \
+            printf 'unknown mode: %s\n' "$1" \
                 | kamilog logger error "${LOGGER_ROOT}" >&2
         fi
         ;;
