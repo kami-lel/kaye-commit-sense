@@ -55,6 +55,13 @@ todo mpl UT
 - `--verify` now runs `check_hook_installation`: reports the resolved
   interpreter, dependency paths, active hooks directory, and whether the
   stub and generator are installed and executable there
+- `throb-widget.sh` v1.0.0, inlined at the top of the script: a
+  single-character pulsing animation (`░▒▓█▓▒`, with an ASCII fallback for
+  non-UTF-8 locales), backgrounded via `throb_widget_start`/`throb_widget_stop`
+  and drawn in place on `stderr`
+- `start_generating_throb`/`stop_generating_throb`: wrap the throb widget
+  around the blocking Dify call in `generate_message`, so the progress line
+  animates while a request is in flight
 
 ### Changed
 
@@ -89,6 +96,12 @@ todo mpl UT
 - this repository's own `.hupy.config.jsonc` wires `kaye-commit-sense-hook.sh`
   into `hb.prepare_commit_msg.lead`, so commits made here now exercise the
   hook for real, ahead of hupy's own `prepare-commit-msg` logic
+- Dify request messaging clarified: `generate_message` now logs "requesting
+  Dify (waiting up to N seconds)" in place of "contacting Dify, up to Ns"
+- progress messaging refactored to animate on a single line: `kamilog` opens
+  the "generating commit message" line with `-N` and is never called again
+  per frame, letting the throb widget redraw in place instead of emitting a
+  new `kamilog` line per tick
 
 ### Deprecated
 
@@ -97,7 +110,8 @@ todo mpl UT
 - unit-test suite (`tests/test-commit-sense-via-dify.sh`) and its `tests/`
   directory; the hook script's public stage functions remain available for
   demo scripts to source
-- stderr spinner utility, in favor of `kamilog` progress feedback
+- original stderr spinner utility, in favor of `kamilog` progress feedback
+  alone; later reinstated as the `throb-widget.sh` module layered on top of it
 - `generate_message_from_file`, an unused stage for generating from a diff
   already saved to a file
 
