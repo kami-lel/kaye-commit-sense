@@ -66,8 +66,9 @@ check_dependencies() {  # ------------------------------------------------------
 }
 
 
-# fills KCSH_DIFY_SERVICE_API_ENDPOINT and KCSH_DIFY_SERVICE_API_SECRET_KEY;
-# the key is never printed
+# fills KCSH_DIFY_SERVICE_API_ENDPOINT, KCSH_DIFY_SERVICE_API_SECRET_KEY,
+# KCSH_REQUEST_TIMEOUT_SEC, and KCSH_DISABLE_MD_SYNTAX; the key is never
+# printed
 resolve_config() {  # ----------------------------------------------------------
     local has_error=false
 
@@ -89,6 +90,10 @@ resolve_config() {  # ----------------------------------------------------------
         return 1
     fi
     KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT%/}"
+
+    # default kept below Dify's 100-second blocking cutoff
+    KCSH_REQUEST_TIMEOUT_SEC="${KCSH_REQUEST_TIMEOUT_SEC:-45}"
+    KCSH_DISABLE_MD_SYNTAX="${KCSH_DISABLE_MD_SYNTAX:-False}"
 }
 
 
@@ -163,8 +168,6 @@ readonly LOGGER_DIFY="${LOGGER_ROOT}.dify"
 # identifies the caller to the Dify app
 readonly DIFY_USER="user"
 
-# below Dify's 100-second blocking cutoff
-readonly REQUEST_TIMEOUT_SECONDS=90
 
 # builds the /chat-messages request body; jq handles all escaping, including
 # quotes, backslashes, newlines, and non-ASCII in the diff
@@ -206,7 +209,7 @@ call_dify_chat() {  # ----------------------------------------------------------
 
     body="$(build_chat_request "${diff}" "${DIFY_USER}")"
 
-    if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
+    if ! response="$(curl -sS --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -H 'Content-Type: application/json' \
@@ -244,7 +247,7 @@ call_dify_chat() {  # ----------------------------------------------------------
 call_dify_info() {  # ----------------------------------------------------------
     local response http_status
 
-    if ! response="$(curl -sS --max-time "${REQUEST_TIMEOUT_SECONDS}" \
+    if ! response="$(curl -sS --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
@@ -278,7 +281,7 @@ generate_message() {  # --------------------------------------------------------
     fi
 
     # logs go to stderr; stdout belongs to the answer alone
-    printf 'contacting Dify, up to %ss' "${REQUEST_TIMEOUT_SECONDS}" \
+    printf 'contacting Dify, up to %ss' "${KCSH_REQUEST_TIMEOUT_SEC}" \
         | kamilog logger enter "${LOGGER_DIFY}" >&2
 
     if ! answer="$(call_dify_chat "${diff}")"; then
@@ -359,6 +362,10 @@ environment:
   KCSH_DIFY_SERVICE_API_SECRET_KEY         required; the Dify Service API key
   KCSH_DIFY_SERVICE_API_ENDPOINT   required; the Dify Service API address
   KCSH_ENABLE_SKIPPING              any non-empty value skips generation
+  KCSH_REQUEST_TIMEOUT_SEC          optional; Dify request timeout, in
+                                     seconds; default 45
+  KCSH_DISABLE_MD_SYNTAX            optional; disables Markdown syntax in
+                                     the generated message; default False
 "
 
 
