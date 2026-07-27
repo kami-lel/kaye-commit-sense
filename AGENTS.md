@@ -35,6 +35,9 @@ generates Git commit messages from the staged diff via a Dify app. See
 - resolve `git`/`curl`/`jq` to absolute paths via `resolve_dependency` into
   `GIT_BIN`/`CURL_BIN`/`JQ_BIN`; call sites use these variables, never the
   bare command name
+- open a `kamilog` progress line with `-N` before starting the throb widget,
+  so the line stays open for the throb to animate on and `kamilog` is never
+  called again per frame; see `start_generating_throb`/`stop_generating_throb`
 
 ## Testing Instructions
 

@@ -1,6 +1,6 @@
 # commit-sense-via-dify CONTEXT
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 Descriptive knowledge of what this project is and how it is meant to work. For
 behavioral rules and commands, see [AGENTS.md](AGENTS.md).
@@ -129,7 +129,23 @@ graph TD
 ```
 
 Feedback during the blocking call is `kamilog` logging on `stderr`, so the
-message file stays the sole product of the run.
+message file stays the sole product of the run. `generate_message` wraps the
+blocking Dify call with `start_generating_throb`/`stop_generating_throb`:
+`kamilog` opens a "generating commit message" line with `-N` (leaving it
+open, called once, never per frame) and the `throb-widget.sh` module
+animates a single pulsing character in place on that line until the call
+returns, then erases it and closes the line with a newline. Both halves are
+`stderr`-only and silent when `stderr` is not a terminal.
+
+`throb-widget.sh` v1.0.0 is a standalone, dependency-free module inlined at
+the top of the script (q.v.
+[kami-lel/throb-widget](https://github.com/kami-lel/throb-widget)) rather
+than sourced from a separate file, in keeping with the one-file installation
+promise. It backgrounds a subshell loop tied to the caller's PID (so it
+exits on its own if the caller dies without calling `throb_widget_stop`),
+chains onto any existing `EXIT`/`INT`/`TERM` trap rather than replacing it,
+and picks a Unicode (`░▒▓█▓▒`) or ASCII (`.oO@Oo`) frame set by locale
+detection, overridable via `throb_widget_start -u`/`-U`.
 
 ## Hook Stage
 
