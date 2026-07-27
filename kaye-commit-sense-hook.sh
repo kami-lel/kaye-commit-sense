@@ -11,10 +11,10 @@ set -euo pipefail
 readonly VERSION="0.1.0"
 
 
-
 ################################################################################
 # kamilog_shim
 # lets scripts call `kamilog` safely even when it is not installed
+# shipped with kamilog v2.9.0, q.v. https://github.com/kami-lel/kamilog
 ################################################################################
 _KAMILOG_BIN="$(type -P kamilog 2>/dev/null || true)"
 
@@ -362,7 +362,7 @@ environment:
 "
 
 
-# HACK manually update logic & logs
+# HACK HACK manually update logic & logs
 # takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
 run_hook() {  # ----------------------------------------------------------------
     local msg_file="$1"
