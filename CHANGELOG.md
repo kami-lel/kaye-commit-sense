@@ -2,7 +2,6 @@
 
 <!--
 Todo gap review before 1.0.0
-TODO add back spinner
 fixme rewrite in-script bash function docs
 todo mpl UT
 -->

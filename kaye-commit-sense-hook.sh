@@ -570,7 +570,8 @@ generate_message() {  # --------------------------------------------------------
     fi
 
     # logs go to stderr; stdout belongs to the answer alone
-    printf 'contacting Dify, up to %ss' "${KCSH_REQUEST_TIMEOUT_SEC}" \
+    printf 'requesting Dify for commit message (waiting up to %s seconds)' \
+        "${KCSH_REQUEST_TIMEOUT_SEC}" \
         | kamilog logger enter "${LOGGER_DIFY}" >&2
 
     start_generating_throb
