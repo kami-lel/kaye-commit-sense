@@ -545,6 +545,21 @@ call_dify_info() {  # ----------------------------------------------------------
 }
 
 
+# draws the progress line and its throb; silent off a terminal
+start_generating_throb() {  # --------------------------------------------------
+    [[ -t 2 ]] || return 0
+    printf 'Generating ' >&2  # throb draws at the cursor, right after
+    throb_widget_start
+}
+
+# erases the throb and closes the progress line; silent off a terminal
+stop_generating_throb() {  # ---------------------------------------------------
+    [[ -t 2 ]] || return 0
+    throb_widget_stop
+    printf '\n' >&2
+}
+
+
 # turns a diff already in hand into a commit message on stdout
 generate_message() {  # --------------------------------------------------------
     local diff="$1"
@@ -558,9 +573,12 @@ generate_message() {  # --------------------------------------------------------
     printf 'contacting Dify, up to %ss' "${KCSH_REQUEST_TIMEOUT_SEC}" \
         | kamilog logger enter "${LOGGER_DIFY}" >&2
 
+    start_generating_throb
     if ! answer="$(call_dify_chat "${diff}")"; then
+        stop_generating_throb
         return 1
     fi
+    stop_generating_throb
 
     printf 'message generated' \
         | kamilog logger succ "${LOGGER_DIFY}" >&2
