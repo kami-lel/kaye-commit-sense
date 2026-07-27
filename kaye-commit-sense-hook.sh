@@ -237,8 +237,8 @@ resolve_dependency() {  # ------------------------------------------------------
     fi
 
     printf -v "${var_name}" '%s' "${resolved}"
-    printf '%s resolved: %s' "${cmd}" "${resolved}" \
-        | kamilog logger succ "${LOGGER_ROOT}" >&2
+    # printf '%s resolved: %s' "${cmd}" "${resolved}" \
+    #     | kamilog logger succ "${LOGGER_ROOT}" >&2
     return 0
 }
 
@@ -267,8 +267,8 @@ check_dependencies() {  # ------------------------------------------------------
         return 1
     fi
 
-    printf 'dependencies verified' \
-        | kamilog logger pass "${LOGGER_ROOT}" >&2
+    # printf 'dependencies verified' \
+    #     | kamilog logger pass "${LOGGER_ROOT}" >&2
     return 0
 }
 
@@ -651,9 +651,9 @@ generate_message() {  # --------------------------------------------------------
     fi
 
     # logs go to stderr; stdout belongs to the answer alone
-    printf 'requesting Dify (waiting up to %s seconds)' \
-        "${KCSH_REQUEST_TIMEOUT_SEC}" \
-        | kamilog logger enter "${LOGGER_DIFY}" >&2
+    # printf 'requesting Dify (waiting up to %s seconds)' \
+    #     "${KCSH_REQUEST_TIMEOUT_SEC}" \
+    #     | kamilog logger enter "${LOGGER_DIFY}" >&2
 
     # -N leaves the line open, so the throb animates in place on it and
     # kamilog is never called again, once per frame
@@ -669,8 +669,8 @@ generate_message() {  # --------------------------------------------------------
     throb_widget_stop
     printf '\n' >&2
 
-    printf 'message generated' \
-        | kamilog logger succ "${LOGGER_DIFY}" >&2
+    # printf 'message generated' \
+    #     | kamilog logger succ "${LOGGER_DIFY}" >&2
 
     printf '%s' "${answer}"
     return 0

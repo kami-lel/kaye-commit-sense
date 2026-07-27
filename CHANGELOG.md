@@ -1,7 +1,9 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-todo mpl UT
+todo implements UTs
+bug `#` as line beginning will comment out the line during editor stage
+fixme hook logger messages are commented out
 -->
 
 [^format]
