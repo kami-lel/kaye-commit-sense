@@ -61,7 +61,7 @@ your-repo/
 Export your Dify credentials in your shell environment (or in `.bashrc`):
 
 ```bash
-export KCSH_DIFY_API_SECRET_KEY="your-dify-api-key"
+export KCSH_DIFY_SERVICE_API_SECRET_KEY="your-dify-api-key"
 export KCSH_DIFY_SERVICE_API_ENDPOINT="http://your-dify-instance/v1"
 ```
 
@@ -91,7 +91,7 @@ The hook runs automatically on `git commit`.
 To skip generation for a single commit, set the opt-out:
 
 ```bash
-COMMIT_SENSE_SKIP=1 git commit
+KCSH_ENABLE_SKIPPING=1 git commit
 ```
 
 For help:
