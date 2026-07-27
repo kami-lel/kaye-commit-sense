@@ -1,7 +1,7 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-todo gap review before 1.0.0
+Todo gap review before 1.0.0
 fixme rewrite in-script bash function docs
 todo mpl UT
 -->
@@ -43,6 +43,18 @@ todo mpl UT
   request timeout, in seconds; defaults to `45`
 - `KCSH_DISABLE_MD_SYNTAX` environment variable: tells the Dify app to skip
   Markdown syntax in the generated message; defaults to `False`
+- optional wall-clock backstop on both Dify calls: runs `curl` under
+  `timeout` (`KCSH_REQUEST_TIMEOUT_SEC + 5`s) when available, degrading to
+  `curl`'s own `--max-time` alone when the `timeout` binary is absent
+- `GIT_PAGER=cat` and `PAGER=cat` exported before any internal `git` call, so
+  nothing can ever wait on a pager
+- `resolve_dependency`: resolves `git`/`curl`/`jq` to absolute paths
+  (`command -v`, then a fixed fallback directory search) into
+  `GIT_BIN`/`CURL_BIN`/`JQ_BIN`, used at every call site in place of the bare
+  command name
+- `--verify` now runs `check_hook_installation`: reports the resolved
+  interpreter, dependency paths, active hooks directory, and whether the
+  stub and generator are installed and executable there
 
 ### Changed
 
@@ -70,6 +82,13 @@ todo mpl UT
   each is checked, then one `pass`/`fail` summary line for the whole check;
   `run_verify` gates on this single unified check instead of a separate
   hardcoded `jq` pre-check ahead of it
+- `run_hook` now always exits `0`, even on internal failure, logging the
+  reason to stderr instead; `--verify` is now the sole command in the script
+  allowed to exit non-zero, since it is a manual preflight with no commit at
+  risk
+- this repository's own `.hupy.config.jsonc` wires `kaye-commit-sense-hook.sh`
+  into `hb.prepare_commit_msg.lead`, so commits made here now exercise the
+  hook for real, ahead of hupy's own `prepare-commit-msg` logic
 
 ### Deprecated
 
@@ -86,11 +105,20 @@ todo mpl UT
 
 - `--verify` now checks for `jq` before parsing any JSON, instead of failing
   deeper in the check with a confusing error
+- `write_message_file`'s temporary file is now created beside the message
+  file instead of under the system temp directory, so the final `mv` stays a
+  same-filesystem atomic rename instead of degrading to copy-then-unlink
+- `check_dependencies` now also runs on the hook path, not only under
+  `--verify`, so a missing dependency is caught before generation is
+  attempted instead of failing deeper with a less clear error
+- `warn` corrected to `warning`, the log level the real `kamilog` binary
+  actually accepts
 
 ### Security
 
 - API key never logged or printed; only used for Authorization header
-- fails closed on Dify errors; never emits empty commit messages
+- fails open on internal errors — a broken generator never blocks a commit;
+  never emits empty commit messages
 - temporary message files cleaned up on all exit paths (RETURN, INT, TERM traps)
 
 [Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/commits/main

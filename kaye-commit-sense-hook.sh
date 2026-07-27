@@ -4,8 +4,13 @@
 # kaye-commit-sense-hook.sh
 #
 # generate a Git commit message from the staged diff, through a Dify app
+# Part of Kaye Commit Sense
+# Q.v. https://github.com/kami-lel/kaye-commit-sense
 ################################################################################
 set -euo pipefail
+
+# no pager or editor may ever wait on input here
+export GIT_PAGER=cat PAGER=cat
 
 
 readonly VERSION="0.1.0"
@@ -48,29 +53,103 @@ readonly LOGGER_ROOT="KCSH"  # every section without a name of its own
 # every command the run depends on
 readonly -a REQUIRED_COMMANDS=(git curl jq)
 
+# probed when `command -v` fails, eg under a minimal-PATH GUI environment
+readonly -a FALLBACK_BIN_DIRS=(/usr/bin /usr/local/bin /opt/homebrew/bin /bin)
+
+# bare names by default; check_dependencies resolves each to an absolute
+# path, so sourcing without it first (eg the demos) still finds them on PATH
+GIT_BIN="git"
+CURL_BIN="curl"
+JQ_BIN="jq"
+
+# optional backstop beyond --max-time; GNU-only, degrades to curl alone
+_TIMEOUT_BIN="$(command -v timeout 2>/dev/null || true)"
+
+# resolves ${cmd} to an absolute path into ${var_name}; command -v, then
+# FALLBACK_BIN_DIRS; fails with a message naming every place searched
+resolve_dependency() {  # -------------------------------------------------------
+    local cmd="$1"
+    local var_name="$2"
+    local resolved="" dir
+
+    resolved="$(command -v "${cmd}" 2>/dev/null || true)"
+    if [[ -z "${resolved}" ]]; then
+        for dir in "${FALLBACK_BIN_DIRS[@]}"; do
+            if [[ -x "${dir}/${cmd}" ]]; then
+                resolved="${dir}/${cmd}"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "${resolved}" ]]; then
+        printf '%s not found on PATH or in %s' \
+            "${cmd}" "${FALLBACK_BIN_DIRS[*]}" \
+            | kamilog logger error "${LOGGER_ROOT}" >&2
+        return 1
+    fi
+
+    printf -v "${var_name}" '%s' "${resolved}"
+    printf '%s resolved: %s' "${cmd}" "${resolved}" \
+        | kamilog logger succ "${LOGGER_ROOT}" >&2
+}
+
 check_dependencies() {  # ------------------------------------------------------
-    local cmd
+    local cmd var_name
     local -a missing=()
 
     for cmd in "${REQUIRED_COMMANDS[@]}"; do
-        if command -v "${cmd}" >/dev/null 2>&1; then
-            printf '%s found' "${cmd}" \
-                | kamilog logger succ "${LOGGER_ROOT}"
-        else
-            printf '%s not found' "${cmd}" \
-                | kamilog logger error "${LOGGER_ROOT}"
+        case "${cmd}" in
+            git) var_name="GIT_BIN" ;;
+            curl) var_name="CURL_BIN" ;;
+            jq) var_name="JQ_BIN" ;;
+        esac
+        if ! resolve_dependency "${cmd}" "${var_name}"; then
             missing+=("${cmd}")
         fi
     done
 
     if ((${#missing[@]} > 0)); then
         printf 'missing command: %s' "${missing[*]}" \
-            | kamilog logger fail "${LOGGER_ROOT}"
+            | kamilog logger fail "${LOGGER_ROOT}" >&2
         return 1
     fi
 
     printf 'dependencies verified' \
-        | kamilog logger pass "${LOGGER_ROOT}"
+        | kamilog logger pass "${LOGGER_ROOT}" >&2
+}
+
+
+# reports interpreter, dependency, and hook-install paths; advisory only
+check_hook_installation() {  # --------------------------------------------------
+    local hooks_dir bash_bin file
+
+    bash_bin="$(type -P bash 2>/dev/null || true)"
+    printf 'interpreter: %s' "${bash_bin:-not found}" \
+        | kamilog logger info "${LOGGER_ROOT}" >&2
+    printf 'dependency paths: git=%s curl=%s jq=%s' \
+        "${GIT_BIN}" "${CURL_BIN}" "${JQ_BIN}" \
+        | kamilog logger info "${LOGGER_ROOT}" >&2
+
+    hooks_dir="$("${GIT_BIN}" rev-parse --git-path hooks 2>/dev/null || true)"
+    if [[ -z "${hooks_dir}" ]]; then
+        printf 'could not resolve the active hooks directory' \
+            | kamilog logger warning "${LOGGER_ROOT}" >&2
+        return 0
+    fi
+    printf 'active hooks directory: %s' "${hooks_dir}" \
+        | kamilog logger info "${LOGGER_ROOT}" >&2
+
+    for file in prepare-commit-msg kaye-commit-sense-hook.sh; do
+        if [[ -x "${hooks_dir}/${file}" ]]; then
+            printf '%s installed and executable' "${file}" \
+                | kamilog logger pass "${LOGGER_ROOT}" >&2
+        else
+            printf '%s not installed or not executable at %s' \
+                "${file}" "${hooks_dir}" \
+                | kamilog logger warning "${LOGGER_ROOT}" >&2
+        fi
+    done
 }
 
 
@@ -83,14 +162,14 @@ resolve_config() {  # ----------------------------------------------------------
     KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT-}"
     if [[ -z "${KCSH_DIFY_SERVICE_API_ENDPOINT}" ]]; then
         printf 'KCSH_DIFY_SERVICE_API_ENDPOINT unset' \
-            | kamilog logger error "${LOGGER_ROOT}"
+            | kamilog logger error "${LOGGER_ROOT}" >&2
         has_error=true
     fi
 
     KCSH_DIFY_SERVICE_API_SECRET_KEY="${KCSH_DIFY_SERVICE_API_SECRET_KEY-}"
     if [[ -z "${KCSH_DIFY_SERVICE_API_SECRET_KEY}" ]]; then
         printf 'KCSH_DIFY_SERVICE_API_SECRET_KEY unset' \
-            | kamilog logger error "${LOGGER_ROOT}"
+            | kamilog logger error "${LOGGER_ROOT}" >&2
         has_error=true
     fi
 
@@ -99,7 +178,7 @@ resolve_config() {  # ----------------------------------------------------------
     fi
     KCSH_DIFY_SERVICE_API_ENDPOINT="${KCSH_DIFY_SERVICE_API_ENDPOINT%/}"
 
-    # default kept below Dify's 100-second blocking cutoff
+    # default kept below Dify's 100s cutoff; only no-op paths meet 2s
     KCSH_REQUEST_TIMEOUT_SEC="${KCSH_REQUEST_TIMEOUT_SEC:-45}"
     KCSH_DISABLE_MD_SYNTAX="${KCSH_DISABLE_MD_SYNTAX:-False}"
 }
@@ -124,31 +203,33 @@ run_verify() {  # --------------------------------------------------------------
     local exit_code=0
 
     printf 'verifying environment' \
-        | kamilog logger enter "${LOGGER_ROOT}"
+        | kamilog logger enter "${LOGGER_ROOT}" >&2
 
     # later checks parse JSON and call curl, so this one gates the rest
     if ! check_dependencies; then
         return 1
     fi
 
+    check_hook_installation
+
     if ! resolve_config; then
         printf 'config incomplete' \
-            | kamilog logger fail "${LOGGER_ROOT}"
+            | kamilog logger fail "${LOGGER_ROOT}" >&2
         exit_code=1
     else
         printf 'api endpoint: %s' "${KCSH_DIFY_SERVICE_API_ENDPOINT}" \
-            | kamilog logger info "${LOGGER_ROOT}"
+            | kamilog logger info "${LOGGER_ROOT}" >&2
         printf 'request timeout: %s second' "${KCSH_REQUEST_TIMEOUT_SEC}" \
-            | kamilog logger info "${LOGGER_ROOT}"
+            | kamilog logger info "${LOGGER_ROOT}" >&2
         if [[ "$(is_md_syntax_disabled)" == true ]]; then
             printf 'markdown syntax: disabled' \
-                | kamilog logger info "${LOGGER_ROOT}"
+                | kamilog logger info "${LOGGER_ROOT}" >&2
         else
             printf 'markdown syntax: enabled' \
-                | kamilog logger info "${LOGGER_ROOT}"
+                | kamilog logger info "${LOGGER_ROOT}" >&2
         fi
         printf 'config verified' \
-            | kamilog logger pass "${LOGGER_ROOT}"
+            | kamilog logger pass "${LOGGER_ROOT}" >&2
     fi
 
     if ((exit_code != 0)); then
@@ -156,7 +237,7 @@ run_verify() {  # --------------------------------------------------------------
     fi
 
     printf 'reaching Dify App by /info endpoint' \
-        | kamilog logger enter "${LOGGER_ROOT}"
+        | kamilog logger enter "${LOGGER_ROOT}" >&2
 
     local info
     if ! info="$(call_dify_info)"; then
@@ -165,19 +246,19 @@ run_verify() {  # --------------------------------------------------------------
         mode="$(extract_json_field "${info}" "mode")"
         if [[ "${mode}" != "advanced-chat" ]]; then
             printf 'app mode is %s, expected advanced-chat' "${mode}" \
-                | kamilog logger error "${LOGGER_ROOT}"
+                | kamilog logger error "${LOGGER_ROOT}" >&2
             exit_code=1
         else
             printf 'app mode is: %s' "${mode}" \
-                | kamilog logger info "${LOGGER_ROOT}"
+                | kamilog logger info "${LOGGER_ROOT}" >&2
             printf 'Dify App reachable' \
-                | kamilog logger pass "${LOGGER_ROOT}"
+                | kamilog logger pass "${LOGGER_ROOT}" >&2
         fi
     fi
 
     if ((exit_code == 0)); then
         printf 'all verified' \
-            | kamilog logger "done" "${LOGGER_ROOT}"
+            | kamilog logger "done" "${LOGGER_ROOT}" >&2
     fi
 
     return "${exit_code}"
@@ -200,7 +281,7 @@ build_chat_request() {  # ------------------------------------------------------
     local user="$2"
     local disable_md_syntax="$3"  # normalized "true" or "false"
 
-    jq -n \
+    "${JQ_BIN}" -n \
         --arg query "${diff}" \
         --arg user "${user}" \
         --argjson disable_md_syntax "${disable_md_syntax}" '{
@@ -217,7 +298,7 @@ build_chat_request() {  # ------------------------------------------------------
 # resolves \uXXXX escapes and UTF-16 surrogate pairs (emoji) on its own
 extract_answer() {  # ----------------------------------------------------------
     local json="$1"
-    jq -r '.answer' <<<"${json}"
+    "${JQ_BIN}" -r '.answer' <<<"${json}"
 }
 
 
@@ -225,7 +306,7 @@ extract_answer() {  # ----------------------------------------------------------
 extract_json_field() {  # ------------------------------------------------------
     local json="$1"
     local key="$2"
-    jq -r --arg key "${key}" '.[$key]' <<<"${json}"
+    "${JQ_BIN}" -r --arg key "${key}" '.[$key]' <<<"${json}"
 }
 
 
@@ -234,11 +315,18 @@ extract_json_field() {  # ------------------------------------------------------
 call_dify_chat() {  # ----------------------------------------------------------
     local diff="$1"
     local body response http_status answer
+    local -a runner=()
 
     body="$(build_chat_request "${diff}" "${DIFY_USER}" \
         "$(is_md_syntax_disabled)")"
 
-    if ! response="$(curl -sS --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
+    # hard kill if curl ever ignores its own --max-time
+    if [[ -n "${_TIMEOUT_BIN}" ]]; then
+        runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
+    fi
+
+    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
+        --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -H 'Content-Type: application/json' \
@@ -246,7 +334,7 @@ call_dify_chat() {  # ----------------------------------------------------------
         -w $'\n%{http_code}')"; then
         printf 'request to %s failed' \
             "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
-            | kamilog logger error "${LOGGER_DIFY}"
+            | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
     fi
 
@@ -256,14 +344,14 @@ call_dify_chat() {  # ----------------------------------------------------------
     if [[ "${http_status}" != 2* ]]; then
         printf 'returned HTTP %s: %s' \
             "${http_status}" "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
-            | kamilog logger error "${LOGGER_DIFY}"
+            | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
     fi
 
     answer="$(extract_answer "${response}")"
     if [[ -z "${answer}" || "${answer}" == "null" ]]; then
         printf 'no answer in Dify reply' \
-            | kamilog logger error "${LOGGER_DIFY}"
+            | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
     fi
 
@@ -275,14 +363,20 @@ call_dify_chat() {  # ----------------------------------------------------------
 # non-2xx status
 call_dify_info() {  # ----------------------------------------------------------
     local response http_status
+    local -a runner=()
 
-    if ! response="$(curl -sS --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
+    if [[ -n "${_TIMEOUT_BIN}" ]]; then
+        runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
+    fi
+
+    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
+        --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
         -w $'\n%{http_code}')"; then
         printf 'request to %s failed' \
             "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
-            | kamilog logger error "${LOGGER_DIFY}"
+            | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
     fi
 
@@ -292,7 +386,7 @@ call_dify_info() {  # ----------------------------------------------------------
     if [[ "${http_status}" != 2* ]]; then
         printf '%s returned HTTP %s' \
             "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" "${http_status}" \
-            | kamilog logger error "${LOGGER_DIFY}"
+            | kamilog logger error "${LOGGER_DIFY}" >&2
         return 1
     fi
 
@@ -350,7 +444,7 @@ is_generation_allowed() {  # ---------------------------------------------------
 
 # prints the staged diff on stdout; empty output means nothing is staged
 read_staged_diff() {  # --------------------------------------------------------
-    git diff --cached
+    "${GIT_BIN}" diff --cached
 }
 
 
@@ -361,7 +455,7 @@ write_message_file() {  # ------------------------------------------------------
     local msg_file="$2"
     local tmp_file
 
-    tmp_file="$(mktemp)" || return 1
+    tmp_file="$(mktemp "$(dirname "${msg_file}")/.XXXXXX")" || return 1
     trap 'rm -f "${tmp_file}"' RETURN
 
     {
@@ -393,11 +487,19 @@ environment:
   KCSH_REQUEST_TIMEOUT_SEC          network request timeout, in seconds; optional, default=45
   KCSH_DISABLE_MD_SYNTAX            disables Markdown syntax in the generated message; optional, default=False
   KCSH_ENABLE_SKIPPING              whether skips this hook entirely; optional, default=False
+
+exit codes:
+  the hook path (bare MSG_FILE invocation) always exits 0, even on internal
+  failure, since a broken generator must never block a commit; --verify is
+  the sole command that exits non-zero, since it is a manual preflight check
+  with no commit at risk
 "
 
 
-# Hack manually update logic & logs
-# takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit
+# takes Git's prepare-commit-msg contract: $1 msg-file, $2 source, $3 commit;
+# fails open by design — every internal error here is logged to stderr and
+# swallowed into a 0 exit, so a broken generator never blocks a commit;
+# --verify is the one command in this script allowed to exit non-zero
 run_hook() {  # ----------------------------------------------------------------
     local msg_file="$1"
     local source="${2-}"
@@ -407,8 +509,16 @@ run_hook() {  # ----------------------------------------------------------------
         return 0  # a deliberate skip is a success
     fi
 
+    if ! check_dependencies; then
+        printf 'skipping generation, dependency missing' \
+            | kamilog logger error "${LOGGER_ROOT}" >&2
+        return 0
+    fi
+
     if ! diff="$(read_staged_diff)"; then
-        return 1
+        printf 'skipping generation, could not read staged diff' \
+            | kamilog logger error "${LOGGER_ROOT}" >&2
+        return 0
     fi
 
     if [[ -z "${diff}" ]]; then
@@ -416,14 +526,18 @@ run_hook() {  # ----------------------------------------------------------------
     fi
 
     if ! answer="$(generate_message "${diff}")"; then
-        return 1
+        printf 'skipping generation, message generation failed' \
+            | kamilog logger error "${LOGGER_ROOT}" >&2
+        return 0
     fi
 
     if ! write_message_file "${answer}" "${msg_file}"; then
-        return 1
+        printf 'skipping generation, could not write message file' \
+            | kamilog logger error "${LOGGER_ROOT}" >&2
+        return 0
     fi
 
-    printf 'done' | kamilog logger "done" "${LOGGER_ROOT}"
+    printf 'done' | kamilog logger "done" "${LOGGER_ROOT}" >&2
     return 0
 }
 
@@ -445,19 +559,19 @@ main() {  # --------------------------------------------------------------------
             printf '%s\n' "${VERSION}"
             return 0
             ;;
-        "")
-            # Bug fix & simplify these logics
-            # no message file, so generation is impossible; fall to the usage
-            ;;
         --)
             shift  # explicit hook path
             if (($# > 0)); then
                 is_hook_path=true
             fi
             ;;
-        -*)
-            printf 'unknown mode: %s' "$1" \
-                | kamilog logger error "${LOGGER_ROOT}"
+        ""|-*)
+            # empty: no message file, generation is impossible, fall to usage
+            # dash-prefixed: unknown mode, log then fall to usage
+            if [[ -n "${1-}" ]]; then
+                printf 'unknown mode: %s' "$1" \
+                    | kamilog logger error "${LOGGER_ROOT}" >&2
+            fi
             ;;
         *)
             # implicit hook path; Git never passes a leading-dash msg-file
