@@ -414,7 +414,7 @@ run_verify() {  # --------------------------------------------------------------
 
     # -N leaves the line open, so the throb animates in place on it and
     # kamilog is never called again, once per frame
-    printf 'reaching Dify App by /info endpoint \n' \
+    printf 'reaching Dify App by /info endpoint ' \
         | kamilog logger enter "${LOGGER_ROOT}" -N >&2
     throb_widget_start
 
