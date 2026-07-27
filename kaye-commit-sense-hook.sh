@@ -837,7 +837,7 @@ run_hook() {  # ----------------------------------------------------------------
         return 0
     fi
 
-    printf 'done' | kamilog logger "done" "${LOGGER_ROOT}" >&2
+    printf 'Message Generated' | kamilog logger "done" "${LOGGER_ROOT}" >&2
     return 0
 }
 
