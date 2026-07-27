@@ -9,6 +9,9 @@
 ################################################################################
 set -euo pipefail
 
+# no pager or editor may ever wait on input here
+export GIT_PAGER=cat PAGER=cat
+
 
 readonly VERSION="0.1.0"
 
@@ -379,7 +382,7 @@ write_message_file() {  # ------------------------------------------------------
     local msg_file="$2"
     local tmp_file
 
-    tmp_file="$(mktemp)" || return 1
+    tmp_file="$(mktemp "$(dirname "${msg_file}")/.XXXXXX")" || return 1
     trap 'rm -f "${tmp_file}"' RETURN
 
     {
