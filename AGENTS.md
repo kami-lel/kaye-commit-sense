@@ -1,9 +1,9 @@
 ---
-name: commit-sense-via-dify AGENTS
+name: kaye-commit-sense AGENTS
 alwaysApply: true
 ---
 
-# commit-sense-via-dify AGENTS
+# kaye-commit-sense AGENTS
 
 The entire project is a single Bash script, `kaye-commit-sense-hook.sh`, that
 generates Git commit messages from the staged diff via a Dify app. See

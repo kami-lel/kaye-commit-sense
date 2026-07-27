@@ -1,4 +1,4 @@
-# commit-sense-via-dify README
+# kaye-commit-sense README
 
 > 🧠 A Dify app writes your Git commit messages from the staged diff.
 

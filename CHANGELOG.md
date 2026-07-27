@@ -1,4 +1,4 @@
-# commit-sense-via-dify CHANGELOG
+# kaye-commit-sense CHANGELOG
 
 <!--
 todo implements UTs
