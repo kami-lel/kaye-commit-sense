@@ -13,8 +13,10 @@ readonly VERSION="1.0.0"
 
 ################################################################################
 # kamilog_shim
+# shipped with kamilog v2.9.1
+#
 # lets scripts call `kamilog` safely even when it is not installed
-# shipped with kamilog v2.9.0, q.v. https://github.com/kami-lel/kamilog
+# Q.v. https://github.com/kami-lel/kamilog
 ################################################################################
 _KAMILOG_BIN="$(type -P kamilog 2>/dev/null || true)"
 
@@ -230,14 +232,14 @@ resolve_dependency() {  # ------------------------------------------------------
     fi
 
     if [[ -z "${resolved}" ]]; then
-        printf '%s not found on PATH or in %s' \
+        printf '%s not found on PATH or in %s\n' \
             "${cmd}" "${FALLBACK_BIN_DIRS[*]}" \
             | kamilog logger error "${LOGGER_ROOT}" >&2
         return 1
     fi
 
     printf -v "${var_name}" '%s' "${resolved}"
-    # printf '%s resolved: %s' "${cmd}" "${resolved}" \
+    # printf '%s resolved: %s\n' "${cmd}" "${resolved}" \
     #     | kamilog logger succ "${LOGGER_ROOT}" >&2
     return 0
 }
@@ -262,12 +264,12 @@ check_dependencies() {  # ------------------------------------------------------
     done
 
     if ((${#missing[@]} > 0)); then
-        printf 'missing command: %s' "${missing[*]}" \
+        printf 'missing command: %s\n' "${missing[*]}" \
             | kamilog logger fail "${LOGGER_ROOT}" >&2
         return 1
     fi
 
-    # printf 'dependencies verified' \
+    # printf 'dependencies verified\n' \
     #     | kamilog logger pass "${LOGGER_ROOT}" >&2
     return 0
 }
@@ -280,9 +282,9 @@ check_hook_installation() {  # -------------------------------------------------
     local hooks_dir bash_bin file
 
     bash_bin="$(type -P bash 2>/dev/null || true)"
-    printf 'interpreter: %s' "${bash_bin:-not found}" \
+    printf 'interpreter: %s\n' "${bash_bin:-not found}" \
         | kamilog logger info "${LOGGER_ROOT}" >&2
-    printf 'dependency paths: git=%s curl=%s jq=%s mktemp=%s' \
+    printf 'dependency paths: git=%s curl=%s jq=%s mktemp=%s\n' \
         "${GIT_BIN}" "${CURL_BIN}" "${JQ_BIN}" "${MKTEMP_BIN}" \
         | kamilog logger info "${LOGGER_ROOT}" >&2
 
