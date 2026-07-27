@@ -43,6 +43,157 @@ kamilog() {
 # END of kamilog_shim  #########################################################
 
 
+################################################################################
+# throb-widget.sh v1.0.0
+#
+# single-character pulsing animation, source this file or copy it inline
+# q.v. https://github.com/kami-lel/throb-widget
+################################################################################
+
+THROB_WIDGET_FRAMES_PULSE=('░' '▒' '▓' '█' '▓' '▒')
+THROB_WIDGET_FRAMES_PULSE_ASCII=('.' 'o' 'O' '@' 'O' 'o')
+throb_widget_idx=${throb_widget_idx:-0}
+# preserve a live pid across re-sourcing; clear it only if it is unset or
+# no longer running, so throb_widget_stop never targets a dead process
+if [[ -z "${throb_widget_pid:-}" ]] \
+        || ! kill -0 "${throb_widget_pid}" 2>/dev/null; then
+    throb_widget_pid=""
+fi
+throb_widget_charset_override=""  # "unicode", "ascii", or empty for auto-detect
+# set once per shell so re-sourcing or restarting never chains duplicate traps
+throb_widget_traps_set=${throb_widget_traps_set:-0}
+
+throb_widget_chain_trap() {
+    local cmd="$1" sig="$2" existing
+
+    existing="$(trap -p "${sig}")"
+    if [[ -n "${existing}" ]]; then
+        existing="${existing#trap -- \'}"
+        existing="${existing%\'*}"
+        trap "${cmd}; ${existing}" "${sig}"
+    else
+        trap "${cmd}" "${sig}"
+    fi
+}
+
+throb_widget_get_frame() {
+    local -a frames
+    local loc="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
+
+    if [[ "${throb_widget_charset_override}" == "unicode" ]] \
+        || { [[ -z "${throb_widget_charset_override}" ]] \
+            && [[ "${loc}" == *UTF-8* || "${loc}" == *utf8* ]]; }; then
+        frames=("${THROB_WIDGET_FRAMES_PULSE[@]}")
+    else
+        frames=("${THROB_WIDGET_FRAMES_PULSE_ASCII[@]}")
+    fi
+
+    printf '%s' "${frames[throb_widget_idx]}"
+    throb_widget_idx=$(( (throb_widget_idx + 1) % ${#frames[@]} ))
+    return 0
+}
+
+
+# Public API  ==================================================================
+
+# throb_widget_start()
+#
+# start the throb, drawing one frame per interval on stderr
+#
+# draws inline at the cursor's current column, backing up one column before
+# each frame after the first, and keeps running until throb_widget_stop runs
+# or the caller's process exits, whichever comes first. calling this while a
+# throb already runs is a no-op
+#
+# USAGE:
+#   throb_widget_start [-u | -U] [INTERVAL]
+#
+# OPTION:
+#   -u  force the Unicode frame set, regardless of locale detection
+#   -U  force the ASCII frame set, regardless of locale detection
+#
+# ARGUMENT:
+#   [INTERVAL]  positive seconds between frames, default 0.2
+throb_widget_start() {  # ------------------------------------------------------
+    local OPTIND=1 opt charset_override=""
+
+    while getopts "uU" opt; do
+        case "${opt}" in
+            u) charset_override="unicode" ;;
+            U) charset_override="ascii" ;;
+            *) return 1 ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+
+    local interval="${1:-0.2}"
+
+    if [[ ! -t 2 ]]; then
+        return 0  # stderr isn't a terminal, nothing to draw the throb onto
+    fi
+
+    if [[ -n "${throb_widget_pid}" ]]; then
+        return 0  # throb already running
+    fi
+
+    throb_widget_charset_override="${charset_override}"
+    if (( ! throb_widget_traps_set )); then
+        throb_widget_chain_trap "throb_widget_stop" EXIT
+        throb_widget_chain_trap "throb_widget_stop; exit 130" INT
+        throb_widget_chain_trap "throb_widget_stop; exit 143" TERM
+        throb_widget_traps_set=1
+    fi
+
+    local owner="${BASHPID:-$$}"  # caller's process, the loop's lifetime bound
+    local was_monitor=0
+    [[ "$-" == *m* ]] && was_monitor=1
+    set +m
+
+    (
+        local first_frame=1
+        while kill -0 "${owner}" 2>/dev/null; do
+            if (( ! first_frame )); then
+                printf '\b'  # back up onto the previous frame's column
+            fi
+            first_frame=0
+            throb_widget_get_frame
+            sleep "${interval}"
+        done
+    ) >&2 &
+    throb_widget_pid=$!
+    disown
+
+    (( was_monitor )) && set -m
+    return 0
+}
+
+# throb_widget_stop()
+#
+# stop the throb and erase its last drawn frame
+#
+# does nothing when no throb is running. the cursor is left exactly where the
+# frame was drawn, now blank, so the caller's next write picks up right there
+#
+# USAGE:
+#   throb_widget_stop
+#
+# OUTPUT:
+#   a backspace, a space, then a backspace, to stderr
+throb_widget_stop() {  # -------------------------------------------------------
+    if [[ -z "${throb_widget_pid}" ]]; then
+        return 0  # no throb running
+    fi
+    kill "${throb_widget_pid}" 2>/dev/null || true
+    wait "${throb_widget_pid}" 2>/dev/null || true
+    printf '\b \b' >&2
+    throb_widget_pid=""
+    return 0
+}
+
+# END of throb-widget.sh  ######################################################
+
+
+
 # constant  ####################################################################
 readonly LOGGER_ROOT="KCSH"  # every section without a name of its own
 
