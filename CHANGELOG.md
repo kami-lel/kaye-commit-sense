@@ -1,7 +1,7 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-fixme rewrite in-script bash function docs
+Fixme rewrite in-script bash function docs
 todo mpl UT
 -->
 
@@ -58,9 +58,9 @@ todo mpl UT
   single-character pulsing animation (`░▒▓█▓▒`, with an ASCII fallback for
   non-UTF-8 locales), backgrounded via `throb_widget_start`/`throb_widget_stop`
   and drawn in place on `stderr`
-- `start_generating_throb`/`stop_generating_throb`: wrap the throb widget
-  around the blocking Dify call in `generate_message`, so the progress line
-  animates while a request is in flight
+- throb widget wrapped inline around each blocking Dify call, so the progress
+  line animates while a request is in flight — `generate_message` for
+  `/chat-messages`, and `--verify` for the `/info` reachability probe
 
 ### Changed
 

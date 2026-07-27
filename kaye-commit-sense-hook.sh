@@ -389,14 +389,20 @@ run_verify() {  # --------------------------------------------------------------
         return "${exit_code}"
     fi
 
-    # TODO use pulser
-    printf 'reaching Dify App by /info endpoint' \
-        | kamilog logger enter "${LOGGER_ROOT}" >&2
-
     local info
+    # -N leaves the line open, so the throb animates in place on it and
+    # kamilog is never called again, once per frame
+    printf 'reaching Dify App by /info endpoint ' \
+        | kamilog logger enter "${LOGGER_ROOT}" -N >&2
+    throb_widget_start
+
     if ! info="$(call_dify_info)"; then
+        throb_widget_stop
+        printf '\n' >&2
         exit_code=1
     else
+        throb_widget_stop
+        printf '\n' >&2
         mode="$(extract_json_field "${info}" "mode")"
         if [[ "${mode}" != "advanced-chat" ]]; then
             printf 'app mode is %s, expected advanced-chat' "${mode}" \
@@ -548,24 +554,6 @@ call_dify_info() {  # ----------------------------------------------------------
 }
 
 
-# draws the progress line and its throb; silent off a terminal
-start_generating_throb() {  # --------------------------------------------------
-    [[ -t 2 ]] || return 0
-    # -N leaves the line open, so the throb animates in place on it and
-    # kamilog is never called again, once per frame
-    printf 'generating commit message ' \
-        | kamilog logger info "${LOGGER_DIFY}" -N >&2
-    throb_widget_start
-}
-
-# erases the throb and closes the progress line; silent off a terminal
-stop_generating_throb() {  # ---------------------------------------------------
-    [[ -t 2 ]] || return 0
-    throb_widget_stop
-    printf '\n' >&2
-}
-
-
 # turns a diff already in hand into a commit message on stdout
 generate_message() {  # --------------------------------------------------------
     local diff="$1"
@@ -580,12 +568,19 @@ generate_message() {  # --------------------------------------------------------
         "${KCSH_REQUEST_TIMEOUT_SEC}" \
         | kamilog logger enter "${LOGGER_DIFY}" >&2
 
-    start_generating_throb
+    # -N leaves the line open, so the throb animates in place on it and
+    # kamilog is never called again, once per frame
+    printf 'generating commit message ' \
+        | kamilog logger info "${LOGGER_DIFY}" -N >&2
+    throb_widget_start
+
     if ! answer="$(call_dify_chat "${diff}")"; then
-        stop_generating_throb
+        throb_widget_stop
+        printf '\n' >&2
         return 1
     fi
-    stop_generating_throb
+    throb_widget_stop
+    printf '\n' >&2
 
     printf 'message generated' \
         | kamilog logger succ "${LOGGER_DIFY}" >&2

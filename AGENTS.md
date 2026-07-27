@@ -40,7 +40,9 @@ generates Git commit messages from the staged diff via a Dify app. See
   `check_dependencies` at the same time
 - open a `kamilog` progress line with `-N` before starting the throb widget,
   so the line stays open for the throb to animate on and `kamilog` is never
-  called again per frame; see `start_generating_throb`/`stop_generating_throb`
+  called again per frame, then close the line with a bare newline after
+  `throb_widget_stop`; write this inline at each blocking call, no wrapper
+  function — see `generate_message` and `run_verify`
 
 ## Testing Instructions
 

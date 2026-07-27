@@ -129,13 +129,16 @@ graph TD
 ```
 
 Feedback during the blocking call is `kamilog` logging on `stderr`, so the
-message file stays the sole product of the run. `generate_message` wraps the
-blocking Dify call with `start_generating_throb`/`stop_generating_throb`:
-`kamilog` opens a "generating commit message" line with `-N` (leaving it
-open, called once, never per frame) and the `throb-widget.sh` module
-animates a single pulsing character in place on that line until the call
-returns, then erases it and closes the line with a newline. Both halves are
-`stderr`-only and silent when `stderr` is not a terminal.
+message file stays the sole product of the run. The pattern is written
+inline at each blocking call rather than wrapped in a helper: `kamilog`
+opens the progress line with `-N` (leaving it open, called once, never per
+frame), `throb_widget_start` animates a single pulsing character in place on
+that line until the call returns, and `throb_widget_stop` erases it before a
+bare newline closes the line. Two call sites use it — `generate_message`
+around the blocking `/chat-messages` call ("generating commit message"), and
+`run_verify` around the `/info` reachability probe ("reaching Dify App by
+/info endpoint"). The animation itself is silent when `stderr` is not a
+terminal, since `throb_widget_start` returns early there.
 
 `throb-widget.sh` v1.0.0 is a standalone, dependency-free module inlined at
 the top of the script (q.v.
