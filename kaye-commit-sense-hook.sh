@@ -389,6 +389,7 @@ run_verify() {  # --------------------------------------------------------------
         return "${exit_code}"
     fi
 
+    # TODO use pulser
     printf 'reaching Dify App by /info endpoint' \
         | kamilog logger enter "${LOGGER_ROOT}" >&2
 
