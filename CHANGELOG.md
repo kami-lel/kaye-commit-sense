@@ -1,7 +1,6 @@
 # commit-sense-via-dify CHANGELOG
 
 <!--
-TODO write demos using plan saved in CONTEXT
 Fixme rewrite in-script bash docs
 Fixme use new hupy version, version uniform in stub & script
 todo mpl UT

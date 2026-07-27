@@ -100,71 +100,6 @@ conflates behavior selection with the settings channel already used by
 implicit and the hook path is the special case, which does not match actual
 usage frequency.
 
-## Partially Implemented: Stage Split and Demo Script
-
-Status: **stage split done; demo script and README note still open.**
-
-`run_hook` welded five concerns into one function — the skip gates, capturing
-`git diff --cached`, resolving configuration, calling Dify, and rewriting the
-message file. Nothing in the script could turn *a diff already in hand* into
-*a commit message on stdout*, so the fixtures under `demos/diffs/` could not
-be exercised end to end without staging them into a real repository.
-
-The unit-test suite that once exercised the JSON helpers and gate conditions
-was removed; the fixtures under `demos/diffs/` now exist solely to feed the
-demo script described below, not a test runner.
-
-The intended outcome is a runnable demo that feeds
-`demos/diffs/single-reorder.diff` through the real Dify backend and prints the
-generated message to stdout. The demo sources the script rather than adding a
-command-line mode, since the sourced-versus-executed guard around `main`
-already supports that and no new public interface is wanted.
-
-### Stages
-
-`run_hook` is now split into five functions, behavior unchanged, with
-`run_hook` reduced to orchestration over them:
-
-| Stage | Responsibility |
-| --- | --- |
-| `is_generation_allowed SOURCE` | the `COMMIT_SENSE_SKIP` check and the `message`/`merge`/`squash`/`commit` case; `0` means proceed |
-| `read_staged_diff` | wraps `git diff --cached`, prints the diff on stdout |
-| `generate_message DIFF` | resolves configuration, draws the spinner, calls Dify, prints the message on stdout |
-| `generate_message_from_file DIFF_FILE` | reads a diff from a file, then hands it to `generate_message` |
-| `write_message_file ANSWER MSG_FILE` | the `mktemp` / prepend / `mv` sequence |
-
-`generate_message` is the reusable seam — the one a demo, a fixture run, or a
-future batch driver can call without a staged index or a message file.
-`generate_message_from_file` extends that seam to a diff already saved on
-disk, which is the shape the `demos/diffs/` fixtures are in.
-`resolve_config`, `call_dify_chat`, and `spinner` are reused untouched; the
-split is pure extraction.
-
-### Steps
-
-1. split `run_hook` into the stages above — `kaye-commit-sense-hook.sh` — done
-2. rebuild `run_hook` as orchestration over them, leaving `main` and the
-   argument-dispatch table untouched — `kaye-commit-sense-hook.sh` — done
-3. remove the unit-test suite and relocate its fixtures to `demos/diffs/` —
-   done
-4. add `demos/single-reorder-demo.sh` — resolves the repository root from
-   `BASH_SOURCE`, sources the hook script, reads the fixture, calls
-   `generate_message`, prints the message on stdout, exits non-zero on
-   failure — still open
-5. note the demo in `README.md` and record the change under `[Unreleased]` in
-   `CHANGELOG.md` — still open
-
-### Verification
-
-- `shellcheck kaye-commit-sense-hook.sh demos/single-reorder-demo.sh`
-- with credentials exported, `./demos/single-reorder-demo.sh` prints a commit
-  message on stdout and exits `0`; without them it fails non-zero with a
-  readable error and prints nothing on stdout
-- `COMMIT_SENSE_SKIP=1 git commit` still short-circuits
-
-The demo requires `KCC_DIFY_API_SECRET_KEY` and
-`KCC_DIFY_SERVICE_API_ENDPOINT`, since it performs a real Dify call.
-
 ## Data Flow
 
 ```mermaid
@@ -275,9 +210,7 @@ All components are now implemented:
   `"user"` and no longer configurable via environment.
 - **stage split** ✓ — `run_hook` reduced to orchestration over
   `is_generation_allowed`, `read_staged_diff`, `generate_message`,
-  `generate_message_from_file`, and `write_message_file`; see
-  [Partially Implemented: Stage Split and Demo Script](#partially-implemented-stage-split-and-demo-script)
-  for the demo work still open.
+  `generate_message_from_file`, and `write_message_file`.
 - **per-module logging** ✓ — each script section owns its own `kamilog`
   logger name (`KCSHook.env`, `KCSHook.dify`, `KCSHook.spinner`,
   `KCSHook.stages`, `KCSHook`) in place of one flat logger name.
