@@ -168,7 +168,14 @@
     },
     "prepare_commit_msg": {
       // run before pre-merge-commit's core logic
-      "lead": [],
+      "lead": [
+        {
+          "remark": "Kaye Commit Sense",
+          "cmd": "./kaye-commit-sense-hook.sh",
+          "allow_failure": true,
+          "timeout": 60.0
+        }
+      ],
       // run after pre-merge-commit's core logic
       "trail": []
     },
