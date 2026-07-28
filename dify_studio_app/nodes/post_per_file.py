@@ -8,7 +8,7 @@ OUTPUT_OPT_OBJ = "opt_obj"
 
 # constants  ###################################################################
 
-# FIXME use 2 set
+# FIXME FIXME use 2 set
 SIGIL_ADD_SHORT = "+"
 SIGIL_DEL_SHORT = "-"
 SIGIL_BALANCED_SHORT = "*"
@@ -18,8 +18,32 @@ SIGIL_BALANCED_LONG = "|"
 
 VALID_SIGILS = frozenset("?^!:=.@#~*")
 
+# add/delete balance verdicts  =================================================
+# HACK HACK rm this
+VERDICT_ADDITION = 0
+VERDICT_BALANCED = 1
+VERDICT_DELETION = 2
+
 
 # auxiliaries  ##################################################################
+def _decide_add_del_balance(ADD_DEL_BALANCE_TOLERANCE, added, deleted):
+    """
+    :return: which way the diff leans, judging the add/delete gap
+            against a tolerance share of the larger side:
+            0 addition, 1 balanced, 2 deletion
+    :rtype: int
+    """
+    largest = max(added, deleted, 1)
+    is_balanced = abs(added - deleted) <= ADD_DEL_BALANCE_TOLERANCE * largest
+
+    # TODO better balance decision logic
+    if is_balanced:
+        return VERDICT_BALANCED
+    if added > deleted:
+        return VERDICT_ADDITION
+    return VERDICT_DELETION
+
+
 def _resolve_ordinary_sigil(
     LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE, per_file_diff
 ):
@@ -44,13 +68,11 @@ def _resolve_ordinary_sigil(
             deleted += 1
 
     is_long = per_file_diff.count("\n") > LONG_SHORT_THRESHOLD
-    largest = max(added, deleted, 1)
-    is_balanced = abs(added - deleted) <= ADD_DEL_BALANCE_TOLERANCE * largest
+    verdict = _decide_add_del_balance(ADD_DEL_BALANCE_TOLERANCE, added, deleted)
 
-    # TODO better balance decision logic
-    if is_balanced:
+    if verdict == VERDICT_BALANCED:
         return SIGIL_BALANCED_LONG if is_long else SIGIL_BALANCED_SHORT
-    if added > deleted:
+    if verdict == VERDICT_ADDITION:
         return SIGIL_ADD_LONG if is_long else SIGIL_ADD_SHORT
     return SIGIL_DEL_LONG if is_long else SIGIL_DEL_SHORT
 
