@@ -811,6 +811,8 @@ usage:
 environment:
   KCSH_DIFY_SERVICE_API_SECRET_KEY  Dify Service API key of Kaye Commit Sense App
   KCSH_DIFY_SERVICE_API_ENDPOINT    Dify Service API endpoint address of Kaye Commit Sense App
+  KCSH_DIFY_USERNAME                identifies the caller in Dify's logs; optional;
+                                    default to use git config user.email
   KCSH_REQUEST_TIMEOUT_SEC          network request timeout, in seconds; optional, default=45
   KCSH_DISABLE_MD_SYNTAX            disables Markdown syntax in the generated message; optional, default=False
   KCSH_ENABLE_SKIPPING              whether skips this hook entirely; optional, default=False
