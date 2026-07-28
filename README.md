@@ -98,3 +98,25 @@ For help:
 ```bash
 ./kaye-commit-sense-hook.sh --help
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+## The Dify App
+
+The generator itself lives in `dify_studio_app/` — the exported
+**Kaye_Commit_Sense** workflow (`Kaye_Commit_Sense.yml`) and, under `nodes/`,
+the Python sources of its code steps. Import the export into your own Dify
+instance to run your own copy.
+
+The rules those steps apply are written up in [`docs/`](docs/), starting with
+[diff shape classification](docs/diff-shape-classification.md).
