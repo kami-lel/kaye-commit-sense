@@ -440,11 +440,11 @@ run_verify() {  # --------------------------------------------------------------
         fi
         if [[ "${DIFY_USERNAME_SOURCE}" == "fallback" ]]; then
             # never fatal; an anonymous caller still gets its message
-            printf 'dify username: %s, no identity found to name you\n' \
+            printf 'dify username:\t%s\n(no identity found to name you)\n' \
                 "${KCSH_DIFY_USERNAME}" \
                 | kamilog logger warning "${LOGGER_ROOT}" >&2
         else
-            printf 'dify username: %s, from %s\n' \
+            printf 'dify username:\t%s\n(from %s)\n' \
                 "${KCSH_DIFY_USERNAME}" "${DIFY_USERNAME_SOURCE}" \
                 | kamilog logger info "${LOGGER_ROOT}" >&2
         fi
