@@ -11,9 +11,6 @@ set -euo pipefail
 readonly VERSION="1.1.0"
 
 
-# TODO upload also "user"
-
-
 ################################################################################
 # kamilog_shim
 # shipped with kamilog v2.9.1
@@ -316,6 +313,39 @@ check_hook_installation() {  # -------------------------------------------------
 }
 
 
+# identifies the caller to the Dify app when nothing better is found
+readonly DIFY_USERNAME_FALLBACK="user"
+
+# names where the resolved identifier came from; for --verify to report
+DIFY_USERNAME_SOURCE=""
+
+
+# resolve_dify_username()
+#
+# resolve the caller identifier, and the name of the source it came from
+resolve_dify_username() {  # ---------------------------------------------------
+    local value
+
+    KCSH_DIFY_USERNAME="${KCSH_DIFY_USERNAME-}"
+    if [[ -n "${KCSH_DIFY_USERNAME}" ]]; then
+        DIFY_USERNAME_SOURCE="KCSH_DIFY_USERNAME"
+        return 0
+    fi
+
+    # an unset key is ordinary here, and `git config` exits non-zero on it
+    value="$("${GIT_BIN}" config --get user.email 2>/dev/null || true)"
+    if [[ -n "${value}" ]]; then
+        KCSH_DIFY_USERNAME="${value}"
+        DIFY_USERNAME_SOURCE="git config user.email"
+        return 0
+    fi
+
+    KCSH_DIFY_USERNAME="${DIFY_USERNAME_FALLBACK}"
+    DIFY_USERNAME_SOURCE="fallback"
+    return 0
+}
+
+
 # resolve_config()
 #
 # load and validate every KCSH_ setting; the secret key is never printed
@@ -344,6 +374,7 @@ resolve_config() {  # ----------------------------------------------------------
     # default kept below Dify's 100s cutoff; only no-op paths meet 2s
     KCSH_REQUEST_TIMEOUT_SEC="${KCSH_REQUEST_TIMEOUT_SEC:-45}"
     KCSH_DISABLE_MD_SYNTAX="${KCSH_DISABLE_MD_SYNTAX:-False}"
+    resolve_dify_username
     return 0
 }
 
@@ -455,10 +486,6 @@ run_verify() {  # --------------------------------------------------------------
 
 readonly LOGGER_DIFY="${LOGGER_ROOT}.dify"
 
-# identifies the caller to the Dify app
-readonly DIFY_USER="user"
-
-
 # build_chat_request()
 #
 # build the JSON body of a /chat-messages request; jq handles all escaping
@@ -532,7 +559,7 @@ call_dify_chat() {  # ----------------------------------------------------------
     local body response http_status answer
     local -a runner=()
 
-    body="$(build_chat_request "${diff}" "${DIFY_USER}" \
+    body="$(build_chat_request "${diff}" "${KCSH_DIFY_USERNAME}" \
         "$(is_md_syntax_disabled)")"
 
     # hard kill if curl ever ignores its own --max-time
