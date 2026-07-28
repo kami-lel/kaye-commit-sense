@@ -27,17 +27,7 @@ todo support emoji sigil
 
 ### Added
 
-- optional `KCSH_DIFY_USERNAME` names the caller in the Dify app's logs,
-  falling back to `git config user.email` and then to the literal `user`
-- `--verify` reports the resolved caller identifier and the source it came
-  from, warning without failing when neither the variable nor a Git email
-  is set
-- README gains a **Configuration** section listing every optional
-  environment variable with its effect and default
-
 ### Changed
-
-- requests no longer send the hardcoded identifier `user`
 
 ### Deprecated
 
@@ -47,7 +37,34 @@ todo support emoji sigil
 
 ### Security
 
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.0...dev
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.1.1] - 2026-07-28
+
+### Added
+
+- optional `KCSH_DIFY_USERNAME` names the caller in the Dify app's logs
+- `--verify` reports the resolved caller identifier and its source
+- a **Configuration** section in the README, covering every optional
+  environment variable
+
+### Changed
+
+- requests now identify the caller instead of sending a fixed value
+
+[1.1.1]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.0...v1.1.1
 
 
 
