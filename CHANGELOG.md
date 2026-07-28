@@ -1,9 +1,12 @@
-# commit-sense-via-dify CHANGELOG
+# kaye-commit-sense CHANGELOG
 
 <!--
+fixme hook logger messages are commented out for clarity
+todo utilize co-authorship, leave kaye's name
+todo add AI maintenance sigil
 todo implements UTs
-bug `#` as line beginning will comment out the line during editor stage
-fixme hook logger messages are commented out
+todo support chinese
+todo support emoji sigil
 -->
 
 [^format]
@@ -34,7 +37,33 @@ fixme hook logger messages are commented out
 
 ### Security
 
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.0...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.1.0] - 2026-07-28
+
+### Added
+
+- the Dify app source under `dify_studio_app/` — the exported **Kaye_Commit_Sense** Chatflow together with the Python code-node scripts it runs, so the whole generator is versioned alongside the hook
+- a reference document explaining diff-shape classification: how a file's added and deleted line counts become an addition, balanced, or deletion verdict
+
+### Changed
+
+- the project is now named **kaye-commit-sense** throughout, replacing the former `commit-sense-via-dify`
+- per-file verdicts now weigh the added-to-deleted ratio against how much evidence stands behind it, so a lopsided handful of lines reads as balanced while a large change is judged on its true proportion
+
+[1.1.0]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.0.0...v1.1.0
 
 
 

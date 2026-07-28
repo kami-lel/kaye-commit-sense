@@ -6,7 +6,7 @@
 # stub Git hook; install as `prepare-commit-msg` alongside
 # kaye-commit-sense-hook.sh, which it forwards to.
 #
-# Part of Kaye Commit Sense v1.0.0
+# Part of Kaye Commit Sense v1.1.0
 # Q.v. https://github.com/kami-lel/kaye-commit-sense
 ################################################################################
 set -euo pipefail

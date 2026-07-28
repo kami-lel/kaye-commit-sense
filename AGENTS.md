@@ -1,21 +1,24 @@
 ---
-name: commit-sense-via-dify AGENTS
+name: kaye-commit-sense AGENTS
 alwaysApply: true
 ---
 
-# commit-sense-via-dify AGENTS
+# kaye-commit-sense AGENTS
 
-The entire project is a single Bash script, `kaye-commit-sense-hook.sh`, that
-generates Git commit messages from the staged diff via a Dify app. See
-[CONTEXT.md](CONTEXT.md) for design and data flow.
+What ships is a single Bash script, `kaye-commit-sense-hook.sh`, that generates
+Git commit messages from the staged diff via a Dify app. The app behind it is
+kept here too, under `dify_studio_app/`. See [CONTEXT.md](CONTEXT.md) for design
+and data flow.
 
 
 ## Scope
 
-- keep all logic in one file — `kaye-commit-sense-hook.sh`
+- keep all hook logic in one file — `kaye-commit-sense-hook.sh`
 - add no runtime dependencies beyond `git`, `curl`, `jq`, `mktemp`, and a POSIX
   shell
 - target **Bash**, invoked as a Git commit hook
+- treat `dify_studio_app/` as the app's source of record, not as a second
+  runtime — nothing there is executed by the hook
 
 ## Code Style
 
@@ -43,6 +46,20 @@ generates Git commit messages from the staged diff via a Dify app. See
   called again per frame, then close the line with a bare newline after
   `throb_widget_stop`; write this inline at each blocking call, no wrapper
   function — see `generate_message` and `run_verify`
+
+## Dify App Source
+
+- `dify_studio_app/Kaye_Commit_Sense.yml` is an export from Dify Studio —
+  change the workflow in Studio and re-export, rather than hand-editing the
+  exported file
+- `dify_studio_app/nodes/*.py` mirror the scripts pasted into the workflow's
+  code steps; edit the file and the step together, never one alone
+- each script exposes a `main` function whose parameters match the step's
+  declared inputs by name, and returns a dictionary whose keys match the
+  step's declared outputs; keep a parameter in the signature even when it goes
+  unused, so the declaration stays valid
+- write up any rule a step encodes under `docs/`, and point the script's
+  docstring at that file instead of restating the derivation
 
 ## Testing Instructions
 
