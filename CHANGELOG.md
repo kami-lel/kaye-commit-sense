@@ -1,7 +1,6 @@
 # kaye-commit-sense CHANGELOG
 
 <!--
-Fixme add/del/balance logic is wrong
 fixme hook logger messages are commented out for clarity
 todo utilize co-authorship, leave kaye's name
 todo add AI maintenance sigil
