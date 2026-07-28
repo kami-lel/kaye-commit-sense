@@ -27,7 +27,17 @@ todo support emoji sigil
 
 ### Added
 
+- optional `KCSH_DIFY_USERNAME` names the caller in the Dify app's logs,
+  falling back to `git config user.email` and then to the literal `user`
+- `--verify` reports the resolved caller identifier and the source it came
+  from, warning without failing when neither the variable nor a Git email
+  is set
+- README gains a **Configuration** section listing every optional
+  environment variable with its effect and default
+
 ### Changed
+
+- requests no longer send the hardcoded identifier `user`
 
 ### Deprecated
 

@@ -59,8 +59,10 @@ Configuration arrives through the environment, every name prefixed `KCSH_`:
 `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
 required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
 `KCSH_DISABLE_MD_SYNTAX` (default `False`, forwarded to the request as
-`inputs.disable_md_syntax`) are optional. The user identifier is hardcoded to
-`"user"`. No credential is stored in the repository.
+`inputs.disable_md_syntax`) are optional. The caller identifier sent as the
+request's `user` field comes from `KCSH_DIFY_USERNAME`, falling back to
+`git config user.email` and then to the literal `"user"`. No credential is
+stored in the repository.
 
 ## Dify App Source
 
@@ -296,9 +298,11 @@ All components are now implemented:
 
 - **`--verify` preflight** ✓ — checks dependencies, hook installation,
   resolves configuration, calls `GET /info`, and confirms the app mode is
-  `advanced-chat`. Logs the resolved API endpoint, request timeout, and
-  Markdown-syntax setting, then reports each check on stderr and exits
-  non-zero on first failure — the sole command in this script allowed to.
+  `advanced-chat`. Logs the resolved API endpoint, request timeout,
+  Markdown-syntax setting, and caller identifier with the source it came
+  from, then reports each check on stderr and exits non-zero on first
+  failure — the sole command in this script allowed to. An identifier that
+  fell through to the literal `"user"` warns without failing the run.
 - **hook gate** ✓ — skips generation when `KCSH_ENABLE_SKIPPING` is set, when
   `$2` indicates reuse (message/merge/squash/commit), or when the staged diff
   is empty.
@@ -311,8 +315,11 @@ All components are now implemented:
 - **environment variables** — every name is prefixed `KCSH_`:
   `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
   required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
-  `KCSH_DISABLE_MD_SYNTAX` (default `False`) are optional. The user
-  identifier is hardcoded to `"user"` and not configurable.
+  `KCSH_DISABLE_MD_SYNTAX` (default `False`) are optional, as is
+  `KCSH_DIFY_USERNAME`, which names the caller in the Dify app's logs.
+  `resolve_dify_username` resolves it from that variable, then from
+  `git config user.email`, then from the literal `"user"`; the Git display
+  name is deliberately never consulted, since Dify treats the field as a key.
 - **stage split** ✓ — `run_hook` reduced to orchestration over
   `is_generation_allowed`, `read_staged_diff`, `generate_message`, and
   `write_message_file`.
@@ -324,7 +331,8 @@ All components are now implemented:
 
 - the working directory is the repository root, so relative paths resolve there
 - the environment supplies `KCSH_DIFY_SERVICE_API_ENDPOINT` and
-  `KCSH_DIFY_SERVICE_API_SECRET_KEY`; the user identifier is hardcoded as `"user"`
+  `KCSH_DIFY_SERVICE_API_SECRET_KEY`; the caller identifier comes from
+  `KCSH_DIFY_USERNAME`, or from `git config user.email`, or from `"user"`
 - `KCSH_ENABLE_SKIPPING` (any non-empty value) short-circuits the run, since
   `--no-verify` does not affect `prepare-commit-msg`
 - `KCSH_REQUEST_TIMEOUT_SEC` and `KCSH_DISABLE_MD_SYNTAX` fall back to `45`

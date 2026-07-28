@@ -313,6 +313,39 @@ check_hook_installation() {  # -------------------------------------------------
 }
 
 
+# identifies the caller to the Dify app when nothing better is found
+readonly DIFY_USERNAME_FALLBACK="user"
+
+# names where the resolved identifier came from; for --verify to report
+dify_username_source=""
+
+
+# resolve_dify_username()
+#
+# resolve the caller identifier, and the name of the source it came from
+resolve_dify_username() {  # ---------------------------------------------------
+    local value
+
+    KCSH_DIFY_USERNAME="${KCSH_DIFY_USERNAME-}"
+    if [[ -n "${KCSH_DIFY_USERNAME}" ]]; then
+        dify_username_source="KCSH_DIFY_USERNAME"
+        return 0
+    fi
+
+    # an unset key is ordinary here, and `git config` exits non-zero on it
+    value="$("${GIT_BIN}" config --get user.email 2>/dev/null || true)"
+    if [[ -n "${value}" ]]; then
+        KCSH_DIFY_USERNAME="${value}"
+        dify_username_source="git config user.email"
+        return 0
+    fi
+
+    KCSH_DIFY_USERNAME="${DIFY_USERNAME_FALLBACK}"
+    dify_username_source="fallback"
+    return 0
+}
+
+
 # resolve_config()
 #
 # load and validate every KCSH_ setting; the secret key is never printed
@@ -341,6 +374,7 @@ resolve_config() {  # ----------------------------------------------------------
     # default kept below Dify's 100s cutoff; only no-op paths meet 2s
     KCSH_REQUEST_TIMEOUT_SEC="${KCSH_REQUEST_TIMEOUT_SEC:-45}"
     KCSH_DISABLE_MD_SYNTAX="${KCSH_DISABLE_MD_SYNTAX:-False}"
+    resolve_dify_username
     return 0
 }
 
@@ -404,6 +438,16 @@ run_verify() {  # --------------------------------------------------------------
             printf 'markdown syntax: enabled\n' \
                 | kamilog logger info "${LOGGER_ROOT}" >&2
         fi
+        if [[ "${dify_username_source}" == "fallback" ]]; then
+            # never fatal; an anonymous caller still gets its message
+            printf 'dify username:\t%s\n(no identity found to name you)\n' \
+                "${KCSH_DIFY_USERNAME}" \
+                | kamilog logger warning "${LOGGER_ROOT}" >&2
+        else
+            printf 'dify username:\t%s\n(from %s)\n' \
+                "${KCSH_DIFY_USERNAME}" "${dify_username_source}" \
+                | kamilog logger info "${LOGGER_ROOT}" >&2
+        fi
         printf 'config verified\n' \
             | kamilog logger pass "${LOGGER_ROOT}" >&2
     fi
@@ -451,10 +495,6 @@ run_verify() {  # --------------------------------------------------------------
 # everything crossing the wire, and every way it can fail closed
 
 readonly LOGGER_DIFY="${LOGGER_ROOT}.dify"
-
-# identifies the caller to the Dify app
-readonly DIFY_USER="user"
-
 
 # build_chat_request()
 #
@@ -529,7 +569,7 @@ call_dify_chat() {  # ----------------------------------------------------------
     local body response http_status answer
     local -a runner=()
 
-    body="$(build_chat_request "${diff}" "${DIFY_USER}" \
+    body="$(build_chat_request "${diff}" "${KCSH_DIFY_USERNAME}" \
         "$(is_md_syntax_disabled)")"
 
     # hard kill if curl ever ignores its own --max-time
@@ -771,6 +811,8 @@ usage:
 environment:
   KCSH_DIFY_SERVICE_API_SECRET_KEY  Dify Service API key of Kaye Commit Sense App
   KCSH_DIFY_SERVICE_API_ENDPOINT    Dify Service API endpoint address of Kaye Commit Sense App
+  KCSH_DIFY_USERNAME                identifies the caller in Dify's logs; optional;
+                                    default to use git config user.email
   KCSH_REQUEST_TIMEOUT_SEC          network request timeout, in seconds; optional, default=45
   KCSH_DISABLE_MD_SYNTAX            disables Markdown syntax in the generated message; optional, default=False
   KCSH_ENABLE_SKIPPING              whether skips this hook entirely; optional, default=False
