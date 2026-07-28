@@ -317,7 +317,7 @@ check_hook_installation() {  # -------------------------------------------------
 readonly DIFY_USERNAME_FALLBACK="user"
 
 # names where the resolved identifier came from; for --verify to report
-DIFY_USERNAME_SOURCE=""
+dify_username_source=""
 
 
 # resolve_dify_username()
@@ -328,7 +328,7 @@ resolve_dify_username() {  # ---------------------------------------------------
 
     KCSH_DIFY_USERNAME="${KCSH_DIFY_USERNAME-}"
     if [[ -n "${KCSH_DIFY_USERNAME}" ]]; then
-        DIFY_USERNAME_SOURCE="KCSH_DIFY_USERNAME"
+        dify_username_source="KCSH_DIFY_USERNAME"
         return 0
     fi
 
@@ -336,12 +336,12 @@ resolve_dify_username() {  # ---------------------------------------------------
     value="$("${GIT_BIN}" config --get user.email 2>/dev/null || true)"
     if [[ -n "${value}" ]]; then
         KCSH_DIFY_USERNAME="${value}"
-        DIFY_USERNAME_SOURCE="git config user.email"
+        dify_username_source="git config user.email"
         return 0
     fi
 
     KCSH_DIFY_USERNAME="${DIFY_USERNAME_FALLBACK}"
-    DIFY_USERNAME_SOURCE="fallback"
+    dify_username_source="fallback"
     return 0
 }
 
@@ -438,14 +438,14 @@ run_verify() {  # --------------------------------------------------------------
             printf 'markdown syntax: enabled\n' \
                 | kamilog logger info "${LOGGER_ROOT}" >&2
         fi
-        if [[ "${DIFY_USERNAME_SOURCE}" == "fallback" ]]; then
+        if [[ "${dify_username_source}" == "fallback" ]]; then
             # never fatal; an anonymous caller still gets its message
             printf 'dify username:\t%s\n(no identity found to name you)\n' \
                 "${KCSH_DIFY_USERNAME}" \
                 | kamilog logger warning "${LOGGER_ROOT}" >&2
         else
             printf 'dify username:\t%s\n(from %s)\n' \
-                "${KCSH_DIFY_USERNAME}" "${DIFY_USERNAME_SOURCE}" \
+                "${KCSH_DIFY_USERNAME}" "${dify_username_source}" \
                 | kamilog logger info "${LOGGER_ROOT}" >&2
         fi
         printf 'config verified\n' \
