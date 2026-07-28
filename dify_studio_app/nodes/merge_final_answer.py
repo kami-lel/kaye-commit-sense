@@ -1,14 +1,18 @@
 # pylint: disable=missing-module-docstring
 
 
+# hack insert space to avoid `#` get cleaned, need better solution
+
 # output keys  #################################################################
 OUTPUT_ANSWER = "answer"
 
 
-# constants  ###################################################################
+# input keys  ##################################################################
 KEY_SIGIL = "sigil"
 KEY_MESSAGE = "message"
 
+
+# constants  ###################################################################
 ANSWER_TEMPLATE = "{}\n\n{}"
 
 
@@ -47,7 +51,6 @@ def _merge_multiple(allows_md, filenames, per_file_extracts, primary_message):
     return ANSWER_TEMPLATE.format(primary_message, "\n".join(lines))
 
 
-# Todo add whether insert space
 # Entry Point  #################################################################
 def main(
     allows_md: bool,
