@@ -6,6 +6,7 @@ todo utilize co-authorship, leave kaye's name
 todo add AI maintenance sigil
 todo implements UTs
 todo support chinese
+todo support emoji sigil
 -->
 
 [^format]
