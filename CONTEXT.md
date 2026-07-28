@@ -62,6 +62,35 @@ required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
 `inputs.disable_md_syntax`) are optional. The user identifier is hardcoded to
 `"user"`. No credential is stored in the repository.
 
+## Dify App Source
+
+The app is not only consumed here, it is kept here: `dify_studio_app/` holds
+`Kaye_Commit_Sense.yml`, the workflow exported from Dify Studio, and
+`nodes/`, the Python sources of its three code steps. The export is the record
+of the app's shape; the separate scripts exist so those steps can be read,
+reviewed, and versioned as ordinary files rather than as strings buried in the
+export.
+
+| Step | File | Role |
+| --- | --- | --- |
+| `split_mux_files` | [split_mux_files.py](dify_studio_app/nodes/split_mux_files.py) | split the incoming diff per file, extract each filename, decide whether a primary message is needed at all |
+| `post_per_file` | [post_per_file.py](dify_studio_app/nodes/post_per_file.py) | split one file's model output into sigil and summary, and resolve the sigil from the diff itself when the model returned none |
+| `merge_final_answer` | [merge_final_answer.py](dify_studio_app/nodes/merge_final_answer.py) | assemble the primary message and the per-file lines into the final answer |
+
+Between them sit the model steps: one drafting the primary message, one
+iterating over the per-file diffs. The workflow reads three settings of its
+own — `FLASK_API_IP` and `FLASK_API_PORT`, locating the prompt-serving API,
+and `LONG_SHORT_THRESHOLD`, the newline count above which a file's diff counts
+as long rather than short.
+
+A file's sigil encodes two things at once: whether its diff is long or short,
+and which way it leans between additions and deletions. The lean is decided by
+smoothed log-odds rather than a plain ratio, so a three-to-one tilt over
+sixteen lines still reads as balanced while the same tilt over a hundred does
+not — the derivation, the integer form actually evaluated, and the two tuning
+knobs are set out in
+[docs/diff-shape-classification.md](docs/diff-shape-classification.md).
+
 ## Components
 
 The project ships as one file, `kaye-commit-sense-hook.sh`, carrying both the
