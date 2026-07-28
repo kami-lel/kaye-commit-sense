@@ -38,11 +38,8 @@ def _resolve_ordinary_sigil(
     LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE, per_file_diff
 ):
     """
-    resolve the ordinary-edit sigil for a diff, from its add/delete
-    balance and its long/short form
-
-
-    :return: the resolved ordinary-edit sigil
+    :return: ordinary-edit sigil for the diff,
+            resolved from its add/delete balance and its long/short form
     :rtype: str
     """
     added = 0
