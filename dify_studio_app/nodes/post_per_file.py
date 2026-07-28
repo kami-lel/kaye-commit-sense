@@ -8,6 +8,7 @@ OUTPUT_OPT_OBJ = "opt_obj"
 
 # constants  ###################################################################
 
+# FIXME use 2 set
 SIGIL_ADD_SHORT = "+"
 SIGIL_DEL_SHORT = "-"
 SIGIL_BALANCED_SHORT = "*"
@@ -34,6 +35,7 @@ def _resolve_ordinary_sigil(
     deleted = 0
 
     for line in per_file_diff.split("\n"):
+        # BUG dont go thru twice, cnt_add and cnt_del get passed down
         if line.startswith("+++") or line.startswith("---"):
             continue
         if line.startswith("+"):
@@ -45,6 +47,7 @@ def _resolve_ordinary_sigil(
     largest = max(added, deleted, 1)
     is_balanced = abs(added - deleted) <= ADD_DEL_BALANCE_TOLERANCE * largest
 
+    # TODO better balance decision logic
     if is_balanced:
         return SIGIL_BALANCED_LONG if is_long else SIGIL_BALANCED_SHORT
     if added > deleted:
