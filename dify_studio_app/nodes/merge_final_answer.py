@@ -24,7 +24,7 @@ def _merge_single(allows_md, filenames, per_file_extracts):
     sigil = file_extract[KEY_SIGIL]
     message = file_extract[KEY_MESSAGE]
 
-    filename_line = ("{}`{}`" if allows_md else "{}[{}]").format(
+    filename_line = (" {}`{}`" if allows_md else "{}[{}]").format(
         sigil, filename
     )
 
@@ -35,7 +35,7 @@ def _merge_multiple(allows_md, filenames, per_file_extracts, primary_message):
     """
     merge the answer for the multiple-file, with-primary-message scenario
     """
-    line_pattern = "{}`{}` {}" if allows_md else "{}[{}] {}"
+    line_pattern = " {}`{}` {}" if allows_md else "{}[{}] {}"
 
     lines = []
     for filename, file_extract in zip(filenames, per_file_extracts):
