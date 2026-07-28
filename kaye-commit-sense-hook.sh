@@ -11,6 +11,9 @@ set -euo pipefail
 readonly VERSION="1.1.0"
 
 
+# TODO upload also "user"
+
+
 ################################################################################
 # kamilog_shim
 # shipped with kamilog v2.9.1
