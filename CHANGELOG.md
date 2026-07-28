@@ -1,9 +1,9 @@
 # kaye-commit-sense CHANGELOG
 
 <!--
-Bug `#` as line beginning will comment out the line during editor stage
 Fixme add/del/balance logic is wrong
-fixme hook logger messages are commented out
+fixme hook logger messages are commented out for clarity
+todo utilize co-authorship, leave kaye's name
 todo add AI maintenance sigil
 todo implements UTs
 todo support chinese
