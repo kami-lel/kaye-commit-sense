@@ -47,6 +47,7 @@ def _merge_multiple(allows_md, filenames, per_file_extracts, primary_message):
     return ANSWER_TEMPLATE.format(primary_message, "\n".join(lines))
 
 
+# Todo add whether insert space
 # Entry Point  #################################################################
 def main(
     allows_md: bool,
