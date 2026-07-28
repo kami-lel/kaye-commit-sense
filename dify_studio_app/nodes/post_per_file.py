@@ -49,7 +49,6 @@ def _resolve_ordinary_sigil(
     deleted = 0
 
     for line in per_file_diff.split("\n"):
-        # BUG dont go thru twice, cnt_add and cnt_del get passed down
         if line.startswith("+++") or line.startswith("---"):
             continue
         if line.startswith("+"):
