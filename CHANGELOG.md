@@ -37,7 +37,34 @@ todo support emoji sigil
 
 ### Security
 
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.0...dev
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.1.1] - 2026-07-28
+
+### Added
+
+- optional `KCSH_DIFY_USERNAME` names the caller in the Dify app's logs
+- `--verify` reports the resolved caller identifier and its source
+- a **Configuration** section in the README, covering every optional
+  environment variable
+
+### Changed
+
+- requests now identify the caller instead of sending a fixed value
+
+[1.1.1]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.0...v1.1.1
 
 
 
