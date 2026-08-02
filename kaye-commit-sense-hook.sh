@@ -577,7 +577,7 @@ call_dify_chat() {  # ----------------------------------------------------------
         runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
     fi
 
-    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
+    if ! response="$("${runner[@]+"${runner[@]}"}" "${CURL_BIN}" -sS \
         --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
@@ -640,7 +640,7 @@ call_dify_info() {  # ----------------------------------------------------------
         runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
     fi
 
-    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
+    if ! response="$("${runner[@]+"${runner[@]}"}" "${CURL_BIN}" -sS \
         --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
