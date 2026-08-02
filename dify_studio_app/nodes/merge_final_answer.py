@@ -28,6 +28,7 @@ def _merge_single(allows_md, filenames, per_file_extracts):
     sigil = file_extract[KEY_SIGIL]
     message = file_extract[KEY_MESSAGE]
 
+    # BUG only add space for "#"
     filename_line = (" {}`{}`" if allows_md else "{}[{}]").format(
         sigil, filename
     )
@@ -39,6 +40,7 @@ def _merge_multiple(allows_md, filenames, per_file_extracts, primary_message):
     """
     merge the answer for the multiple-file, with-primary-message scenario
     """
+    # BUG only add space for "#"
     line_pattern = " {}`{}` {}" if allows_md else "{}[{}] {}"
 
     lines = []
