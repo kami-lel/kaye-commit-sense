@@ -1,8 +1,6 @@
 # pylint: disable=missing-module-docstring
 
 
-# hack insert space to avoid `#` get cleaned, need better solution
-
 # output keys  #################################################################
 OUTPUT_ANSWER = "answer"
 
@@ -24,13 +22,16 @@ def _format_line(sigil, filename, message, allows_md):
     :return: formatted sigil/filename/message line
     :rtype: str
     """
-    # BUG only add space for "#"
     if message:
-        line_pattern = " {}`{}` {}" if allows_md else "{}[{}] {}"
+        line_pattern = "{}`{}` {}" if allows_md else "{}[{}] {}"
         line = line_pattern.format(sigil, filename, message)
     else:
-        line_pattern = " {}`{}`" if allows_md else "{}[{}]"
+        line_pattern = "{}`{}`" if allows_md else "{}[{}]"
         line = line_pattern.format(sigil, filename)
+
+    # hack prepend space for "#" to avoid it get cleaned, need better solution
+    if sigil == "#":
+        line = " " + line
 
     return line
 
