@@ -1,8 +1,6 @@
 # pylint: disable=missing-module-docstring
 
 
-# hack insert space to avoid `#` get cleaned, need better solution
-
 # output keys  #################################################################
 OUTPUT_ANSWER = "answer"
 
@@ -19,6 +17,25 @@ ANSWER_TEMPLATE = "{}\n\n{}"
 # auxiliaries  #################################################################
 
 
+def _format_line(sigil, filename, message, allows_md):
+    """
+    :return: formatted sigil/filename/message line
+    :rtype: str
+    """
+    if message:
+        line_pattern = "{}`{}` {}" if allows_md else "{}[{}] {}"
+        line = line_pattern.format(sigil, filename, message)
+    else:
+        line_pattern = "{}`{}`" if allows_md else "{}[{}]"
+        line = line_pattern.format(sigil, filename)
+
+    # hack prepend space for "#" to avoid it get cleaned, need better solution
+    if sigil == "#":
+        line = " " + line
+
+    return line
+
+
 def _merge_single(allows_md, filenames, per_file_extracts):
     """
     merge the answer for the single-file, no-primary-message scenario
@@ -28,9 +45,7 @@ def _merge_single(allows_md, filenames, per_file_extracts):
     sigil = file_extract[KEY_SIGIL]
     message = file_extract[KEY_MESSAGE]
 
-    filename_line = (" {}`{}`" if allows_md else "{}[{}]").format(
-        sigil, filename
-    )
+    filename_line = _format_line(sigil, filename, "", allows_md)
 
     return ANSWER_TEMPLATE.format(message, filename_line)
 
@@ -39,13 +54,11 @@ def _merge_multiple(allows_md, filenames, per_file_extracts, primary_message):
     """
     merge the answer for the multiple-file, with-primary-message scenario
     """
-    line_pattern = " {}`{}` {}" if allows_md else "{}[{}] {}"
-
     lines = []
     for filename, file_extract in zip(filenames, per_file_extracts):
         sigil = file_extract[KEY_SIGIL]
         message = file_extract[KEY_MESSAGE]
-        line = line_pattern.format(sigil, filename, message)
+        line = _format_line(sigil, filename, message, allows_md)
         lines.append(line)
 
     return ANSWER_TEMPLATE.format(primary_message, "\n".join(lines))

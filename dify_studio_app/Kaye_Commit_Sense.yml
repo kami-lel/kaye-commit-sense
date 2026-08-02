@@ -16,6 +16,14 @@ version: 0.5.0
 workflow:
   conversation_variables: []
   environment_variables:
+  - description: ''
+    id: 7c90748e-9fc7-4680-b953-7f183eb21bd3
+    name: ADD_DEL_BALANCE_TOLERANCE
+    selector:
+    - env
+    - ADD_DEL_BALANCE_TOLERANCE
+    value: 0.1
+    value_type: float
   - description: 'Kaye Flask API''s IP accessible to this Dify App, e.g. "11.22.33.44";
 
       default Docker gateway: "172.17.0.1"'
@@ -601,22 +609,29 @@ workflow:
       zIndex: 1002
     - data:
         code: "# pylint: disable=missing-module-docstring\n\n\n# output keys  #################################################################\n\
-          OUTPUT_ANSWER = \"answer\"\n\n\n# constants  ###################################################################\n\
-          KEY_SIGIL = \"sigil\"\nKEY_MESSAGE = \"message\"\n\nANSWER_TEMPLATE = \"\
-          {}\\n\\n{}\"\n\n\n# auxiliaries  ##################################################################\n\
+          OUTPUT_ANSWER = \"answer\"\n\n\n# input keys  ##################################################################\n\
+          KEY_SIGIL = \"sigil\"\nKEY_MESSAGE = \"message\"\n\n\n# constants  ###################################################################\n\
+          ANSWER_TEMPLATE = \"{}\\n\\n{}\"\n\n\n# auxiliaries  #################################################################\n\
+          \n\ndef _format_line(sigil, filename, message, allows_md):\n    \"\"\"\n\
+          \    :return: formatted sigil/filename/message line\n    :rtype: str\n \
+          \   \"\"\"\n    if message:\n        line_pattern = \"{}`{}` {}\" if allows_md\
+          \ else \"{}[{}] {}\"\n        line = line_pattern.format(sigil, filename,\
+          \ message)\n    else:\n        line_pattern = \"{}`{}`\" if allows_md else\
+          \ \"{}[{}]\"\n        line = line_pattern.format(sigil, filename)\n\n  \
+          \  # hack prepend space for \"#\" to avoid it get cleaned, need better solution\n\
+          \    if sigil == \"#\":\n        line = \" \" + line\n\n    return line\n\
           \n\ndef _merge_single(allows_md, filenames, per_file_extracts):\n    \"\"\
           \"\n    merge the answer for the single-file, no-primary-message scenario\n\
           \    \"\"\"\n    filename = filenames[0]\n    file_extract = per_file_extracts[0]\n\
           \    sigil = file_extract[KEY_SIGIL]\n    message = file_extract[KEY_MESSAGE]\n\
-          \n    filename_line = (\"{}`{}`\" if allows_md else \"{}[{}]\").format(\n\
-          \        sigil, filename\n    )\n\n    return ANSWER_TEMPLATE.format(message,\
-          \ filename_line)\n\n\ndef _merge_multiple(allows_md, filenames, per_file_extracts,\
-          \ primary_message):\n    \"\"\"\n    merge the answer for the multiple-file,\
-          \ with-primary-message scenario\n    \"\"\"\n    line_pattern = \"{}`{}`\
-          \ {}\" if allows_md else \"{}[{}] {}\"\n\n    lines = []\n    for filename,\
-          \ file_extract in zip(filenames, per_file_extracts):\n        sigil = file_extract[KEY_SIGIL]\n\
-          \        message = file_extract[KEY_MESSAGE]\n        line = line_pattern.format(sigil,\
-          \ filename, message)\n        lines.append(line)\n\n    return ANSWER_TEMPLATE.format(primary_message,\
+          \n    filename_line = _format_line(sigil, filename, \"\", allows_md)\n\n\
+          \    return ANSWER_TEMPLATE.format(message, filename_line)\n\n\ndef _merge_multiple(allows_md,\
+          \ filenames, per_file_extracts, primary_message):\n    \"\"\"\n    merge\
+          \ the answer for the multiple-file, with-primary-message scenario\n    \"\
+          \"\"\n    lines = []\n    for filename, file_extract in zip(filenames, per_file_extracts):\n\
+          \        sigil = file_extract[KEY_SIGIL]\n        message = file_extract[KEY_MESSAGE]\n\
+          \        line = _format_line(sigil, filename, message, allows_md)\n    \
+          \    lines.append(line)\n\n    return ANSWER_TEMPLATE.format(primary_message,\
           \ \"\\n\".join(lines))\n\n\n# Entry Point  #################################################################\n\
           def main(\n    allows_md: bool,\n    skip_primary_message: bool,\n    filenames:\
           \ list[str],\n    per_file_extracts: list[dict],\n    primary_message: str,\n\
@@ -642,7 +657,7 @@ workflow:
           answer:
             children: null
             type: string
-        selected: false
+        selected: true
         title: merge_final_answer
         type: code
         variables:
@@ -679,49 +694,52 @@ workflow:
       positionAbsolute:
         x: 2038.5682732510259
         y: 303
-      selected: false
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 241
     - data:
-        code: "# pylint: disable=missing-module-docstring\n\n\n# output keys  #################################################################\n\
+        code: "# pylint: disable=missing-module-docstring\n# pylint: disable=invalid-name\n\
+          \n\n# output keys  #################################################################\n\
           OUTPUT_OPT_OBJ = \"opt_obj\"\n\n\n# constants  ###################################################################\n\
-          \nBALANCE_TOLERANCE = 0.2\n\nSIGIL_ADD_SHORT = \"+\"\nSIGIL_DEL_SHORT =\
-          \ \"-\"\nSIGIL_BALANCED_SHORT = \"*\"\nSIGIL_ADD_LONG = \"/\"\nSIGIL_DEL_LONG\
-          \ = \"\\\\\"\nSIGIL_BALANCED_LONG = \"|\"\n\nVALID_SIGILS = frozenset(\"\
-          ?^!:=.@#~*\")\n\n\n# auxiliaries  ##################################################################\n\
-          def _resolve_ordinary_sigil(per_file_diff, LONG_SHORT_THRESHOLD):\n    \"\
-          \"\"\n    resolve the ordinary-edit sigil for a diff, from its add/delete\n\
-          \    balance and its long/short form\n\n\n    :return: the resolved ordinary-edit\
-          \ sigil\n    :rtype: str\n    \"\"\"\n    added = 0\n    deleted = 0\n\n\
-          \    for line in per_file_diff.split(\"\\n\"):\n        if line.startswith(\"\
-          +++\") or line.startswith(\"---\"):\n            continue\n        if line.startswith(\"\
-          +\"):\n            added += 1\n        elif line.startswith(\"-\"):\n  \
-          \          deleted += 1\n\n    is_long = per_file_diff.count(\"\\n\") >\
-          \ LONG_SHORT_THRESHOLD\n    largest = max(added, deleted, 1)\n    is_balanced\
-          \ = abs(added - deleted) <= BALANCE_TOLERANCE * largest\n\n    if is_balanced:\n\
-          \        return SIGIL_BALANCED_LONG if is_long else SIGIL_BALANCED_SHORT\n\
-          \    if added > deleted:\n        return SIGIL_ADD_LONG if is_long else\
-          \ SIGIL_ADD_SHORT\n    return SIGIL_DEL_LONG if is_long else SIGIL_DEL_SHORT\n\
-          \n\n# Entry Point  #################################################################\n\
-          def main(LONG_SHORT_THRESHOLD, per_file_diff, llm_message):\n    \"\"\"\n\
-          \    perform post-process directly on the LLM's per-file output:\n\n   \
-          \ - split ``llm_message`` into its sigil line and summary line\n    - when\
-          \ the sigil is not a valid single-character sigil, resolve\n      the real\
-          \ sigil from ``per_file_diff``'s add/delete balance and\n      length against\
-          \ ``LONG_SHORT_THRESHOLD``\n\n\n    :param LONG_SHORT_THRESHOLD: newline-count\
-          \ cutoff above which a\n            diff is classified as long rather than\
-          \ short\n    :type LONG_SHORT_THRESHOLD: float\n    :param per_file_diff:\n\
-          \    :type per_file_diff: str\n    :param llm_message:\n    :type llm_message:\
-          \ str\n    :return: {\n        \"opt_obj\": the resolved sigil and message\
-          \ for this file\n    }\n    :rtype: dict{\n        \"opt_obj\": dict{\"\
-          sigil\": str, \"message\": str}\n    }\n    \"\"\"\n    sigil, _, message\
-          \ = llm_message.strip(\"\\n\").partition(\"\\n\")\n    sigil = sigil.strip()\n\
-          \    message = message.strip()\n\n    if not (len(sigil) == 1 and sigil\
-          \ in VALID_SIGILS):\n        sigil = _resolve_ordinary_sigil(per_file_diff,\
-          \ LONG_SHORT_THRESHOLD)\n\n    opt_obj = {\"sigil\": sigil, \"message\"\
-          : message}\n\n    return {OUTPUT_OPT_OBJ: opt_obj}\n\n"
+          \nSIGIL_ADD_SHORT = \"+\"\nSIGIL_DEL_SHORT = \"-\"\nSIGIL_BALANCED_SHORT\
+          \ = \"*\"\nSIGIL_ADD_LONG = \"/\"\nSIGIL_DEL_LONG = \"\\\\\"\nSIGIL_BALANCED_LONG\
+          \ = \"|\"\n\nVALID_SIGILS = frozenset(\"?^!:=.@#~*\")\n\n\n# auxiliaries\
+          \  ##################################################################\n\
+          def _resolve_ordinary_sigil(\n    LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE,\
+          \ per_file_diff\n):\n    \"\"\"\n    resolve the ordinary-edit sigil for\
+          \ a diff, from its add/delete\n    balance and its long/short form\n\n\n\
+          \    :return: the resolved ordinary-edit sigil\n    :rtype: str\n    \"\"\
+          \"\n    added = 0\n    deleted = 0\n\n    for line in per_file_diff.split(\"\
+          \\n\"):\n        if line.startswith(\"+++\") or line.startswith(\"---\"\
+          ):\n            continue\n        if line.startswith(\"+\"):\n         \
+          \   added += 1\n        elif line.startswith(\"-\"):\n            deleted\
+          \ += 1\n\n    is_long = per_file_diff.count(\"\\n\") > LONG_SHORT_THRESHOLD\n\
+          \    largest = max(added, deleted, 1)\n    is_balanced = abs(added - deleted)\
+          \ <= ADD_DEL_BALANCE_TOLERANCE * largest\n\n    if is_balanced:\n      \
+          \  return SIGIL_BALANCED_LONG if is_long else SIGIL_BALANCED_SHORT\n   \
+          \ if added > deleted:\n        return SIGIL_ADD_LONG if is_long else SIGIL_ADD_SHORT\n\
+          \    return SIGIL_DEL_LONG if is_long else SIGIL_DEL_SHORT\n\n\n# Entry\
+          \ Point  #################################################################\n\
+          def main(\n    LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE, per_file_diff,\
+          \ llm_message\n):\n    \"\"\"\n    perform post-process directly on the\
+          \ LLM's per-file output:\n\n    - split ``llm_message`` into its sigil line\
+          \ and summary line\n    - when the sigil is not a valid single-character\
+          \ sigil, resolve\n      the real sigil from ``per_file_diff``'s add/delete\
+          \ balance and\n      length against ``LONG_SHORT_THRESHOLD``\n\n\n    :param\
+          \ LONG_SHORT_THRESHOLD: newline-count cutoff above which a\n           \
+          \ diff is classified as long rather than short\n    :type LONG_SHORT_THRESHOLD:\
+          \ float\n    :param per_file_diff:\n    :type per_file_diff: str\n    :param\
+          \ llm_message:\n    :type llm_message: str\n    :return: {\n        \"opt_obj\"\
+          : the resolved sigil and message for this file\n    }\n    :rtype: dict{\n\
+          \        \"opt_obj\": dict{\"sigil\": str, \"message\": str}\n    }\n  \
+          \  \"\"\"\n    sigil, _, message = llm_message.strip(\"\\n\").partition(\"\
+          \\n\")\n    sigil = sigil.strip()\n    message = message.strip()\n\n   \
+          \ if not (len(sigil) == 1 and sigil in VALID_SIGILS):\n        sigil = _resolve_ordinary_sigil(\n\
+          \            LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE, per_file_diff\n\
+          \        )\n\n    opt_obj = {\"sigil\": sigil, \"message\": message}\n\n\
+          \    return {OUTPUT_OPT_OBJ: opt_obj}\n\n"
         code_language: python3
         isInIteration: true
         isInLoop: false
@@ -739,6 +757,11 @@ workflow:
           - LONG_SHORT_THRESHOLD
           value_type: number
           variable: LONG_SHORT_THRESHOLD
+        - value_selector:
+          - env
+          - ADD_DEL_BALANCE_TOLERANCE
+          value_type: number
+          variable: ADD_DEL_BALANCE_TOLERANCE
         - value_selector:
           - '17847136437120'
           - item
@@ -758,14 +781,14 @@ workflow:
       positionAbsolute:
         x: 1652.311937969482
         y: 601.2574064245854
-      selected: true
+      selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 241
       zIndex: 1002
     viewport:
-      x: -599.5549289508169
-      y: -48.10880917391785
-      zoom: 0.7004492480167409
+      x: -1093.5457303506892
+      y: 14.738372033679298
+      zoom: 0.7491487733036917
   rag_pipeline_variables: []

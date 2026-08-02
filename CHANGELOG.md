@@ -41,6 +41,9 @@ todo support emoji sigil
 - `call_dify_chat` and `call_dify_info` no longer fail with an "unbound
   variable" error when the optional `timeout` binary is absent, by guarding
   the `runner` array expansion
+- `merge_final_answer` no longer prepends a leading space to every
+  sigil/filename line in Markdown mode, only to lines whose sigil is `#`
+  (which Markdown would otherwise render as a heading)
 
 > [!NOTE]
 > restore Bash 3.2 compatibility (macOS's frozen system Bash) where the hook previously failed silently on every real invocation
