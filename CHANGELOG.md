@@ -36,6 +36,10 @@ todo support emoji sigil
 
 ### Fixed
 
+- `merge_final_answer` no longer prepends a leading space to every
+  sigil/filename line in Markdown mode, only to lines whose sigil is `#`
+  (which Markdown would otherwise render as a heading)
+
 ### Security
 
 [Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...dev
