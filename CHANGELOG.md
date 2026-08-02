@@ -2,6 +2,7 @@
 
 <!--
 fixme hook logger messages are commented out for clarity
+todo add an installer
 todo utilize co-authorship, leave kaye's name
 todo add AI maintenance sigil
 todo implements UTs
@@ -37,7 +38,35 @@ todo support emoji sigil
 
 ### Security
 
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...dev
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.2...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.1.2] - 2026-08-02
+
+### Changed
+
+- `merge_final_answer` prepends a leading space only to lines whose sigil is `#`
+
+### Fixed
+
+- `is_md_syntax_disabled` no longer uses the Bash 4+ `${VAR,,}` lowercase expansion
+- `call_dify_chat` and `call_dify_info` no longer fail with an "unbound variable" error when the optional `timeout` binary is absent
+
+> [!NOTE]
+> restore Bash 3.2 compatibility (macOS's frozen system Bash) where the hook previously failed silently on every real invocation
+
+[1.1.2]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...v1.1.2
 
 
 

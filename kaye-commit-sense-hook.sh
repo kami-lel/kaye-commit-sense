@@ -8,7 +8,7 @@
 # Q.v. https://github.com/kami-lel/kaye-commit-sense
 ################################################################################
 set -euo pipefail
-readonly VERSION="1.1.1"
+readonly VERSION="1.1.2"
 
 
 ################################################################################
@@ -383,8 +383,8 @@ resolve_config() {  # ----------------------------------------------------------
 #
 # normalize KCSH_DISABLE_MD_SYNTAX into a lowercase jq boolean
 is_md_syntax_disabled() {  # ---------------------------------------------------
-    case "${KCSH_DISABLE_MD_SYNTAX,,}" in
-    true|1|yes) printf 'true' ;;
+    case "${KCSH_DISABLE_MD_SYNTAX}" in
+    [Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]) printf 'true' ;;
     *) printf 'false' ;;
     esac
     return 0
@@ -577,7 +577,7 @@ call_dify_chat() {  # ----------------------------------------------------------
         runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
     fi
 
-    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
+    if ! response="$("${runner[@]+"${runner[@]}"}" "${CURL_BIN}" -sS \
         --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X POST "${KCSH_DIFY_SERVICE_API_ENDPOINT}/chat-messages" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \
@@ -640,7 +640,7 @@ call_dify_info() {  # ----------------------------------------------------------
         runner=("${_TIMEOUT_BIN}" "$((KCSH_REQUEST_TIMEOUT_SEC + 5))")
     fi
 
-    if ! response="$("${runner[@]}" "${CURL_BIN}" -sS \
+    if ! response="$("${runner[@]+"${runner[@]}"}" "${CURL_BIN}" -sS \
         --max-time "${KCSH_REQUEST_TIMEOUT_SEC}" \
         -X GET "${KCSH_DIFY_SERVICE_API_ENDPOINT}/info" \
         -H "Authorization: Bearer ${KCSH_DIFY_SERVICE_API_SECRET_KEY}" \

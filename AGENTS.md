@@ -17,6 +17,8 @@ and data flow.
 - add no runtime dependencies beyond `git`, `curl`, `jq`, `mktemp`, and a POSIX
   shell
 - target **Bash**, invoked as a Git commit hook
+- floor is **Bash 3.2** (macOS's frozen system Bash) — write no syntax newer
+  than that, even though Debian and WSL ship far newer Bash by default
 - treat `dify_studio_app/` as the app's source of record, not as a second
   runtime — nothing there is executed by the hook
 
