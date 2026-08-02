@@ -383,8 +383,8 @@ resolve_config() {  # ----------------------------------------------------------
 #
 # normalize KCSH_DISABLE_MD_SYNTAX into a lowercase jq boolean
 is_md_syntax_disabled() {  # ---------------------------------------------------
-    case "${KCSH_DISABLE_MD_SYNTAX,,}" in
-    true|1|yes) printf 'true' ;;
+    case "${KCSH_DISABLE_MD_SYNTAX}" in
+    [Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]) printf 'true' ;;
     *) printf 'false' ;;
     esac
     return 0
