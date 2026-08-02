@@ -36,6 +36,15 @@ todo support emoji sigil
 
 ### Fixed
 
+- `is_md_syntax_disabled` no longer uses the Bash 4+ `${VAR,,}` lowercase
+  expansion, replaced with a case-insensitive glob pattern
+- `call_dify_chat` and `call_dify_info` no longer fail with an "unbound
+  variable" error when the optional `timeout` binary is absent, by guarding
+  the `runner` array expansion
+
+> [!NOTE]
+> restore Bash 3.2 compatibility (macOS's frozen system Bash) where the hook previously failed silently on every real invocation
+
 ### Security
 
 [Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...dev
