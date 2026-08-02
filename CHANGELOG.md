@@ -30,11 +30,33 @@ todo support emoji sigil
 
 ### Changed
 
-- `merge_final_answer` prepends a leading space only to lines whose sigil is `#`
-
 ### Deprecated
 
 ### Removed
+
+### Fixed
+
+### Security
+
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.2...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.1.2] - 2026-08-02
+
+### Changed
+
+- `merge_final_answer` prepends a leading space only to lines whose sigil is `#`
 
 ### Fixed
 
@@ -44,9 +66,7 @@ todo support emoji sigil
 > [!NOTE]
 > restore Bash 3.2 compatibility (macOS's frozen system Bash) where the hook previously failed silently on every real invocation
 
-### Security
-
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...dev
+[1.1.2]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.1...v1.1.2
 
 
 
