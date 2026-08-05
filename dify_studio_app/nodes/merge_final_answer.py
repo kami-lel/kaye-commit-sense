@@ -58,7 +58,7 @@ def _merge_multiple(filenames, per_file_extracts, primary_message):
     return ANSWER_TEMPLATE.format(primary_message, "\n".join(lines))
 
 
-# Entry Point  #################################################################
+# Main Entry Point  ############################################################
 def main(
     skip_primary_message: bool,
     filenames: list[str],
