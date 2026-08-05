@@ -11,14 +11,15 @@
 | 📛 | renamed, content kept |
 | 🔒 | file mode only |
 | 📏 | whitespace only |
-| 🔖 | triage tags only |
+| 🔖 | [triage tags](#triage-tags) only |
 | 📝 | code comments only |
 | ♻️ | restructured, behavior unchanged |
 | 🤖 | agent instructions changed |
 | 🧪 | tests changed |
+| 🧸 | examples or demonstration code changed |
 | ⚙️ | build or configuration changed |
-| 🪧 | readme changed |
-| 🧾 | changelog changed |
+| 🔰 | readme changed |
+| 🪧 | changelog changed |
 | 🪵 | development log changed |
 | 📖 | documentation changed |
 

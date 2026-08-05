@@ -114,6 +114,8 @@ For help:
 
 ## Configuration
 
+<!-- TODO remove md syntax support -->
+
 Beyond the two required credentials, every setting is optional and read from
 the environment:
 

@@ -12,7 +12,7 @@ OUTPUT_OPT_OBJ = "opt_obj"
 SIGILS_SHORT = ("🟢", "🟡", "🔴")
 SIGILS_LONG = ("🟩", "🟨", "🟥")
 
-# special-case sigils the LLM may emit directly, see ``docs/kcs-doc.md``
+# special-case sigils the LLM may emit directly
 VALID_SIGILS = frozenset((
     "🔢",
     "📄",
@@ -26,9 +26,10 @@ VALID_SIGILS = frozenset((
     "♻️",
     "🤖",
     "🧪",
+    "🧸",
     "⚙️",
+    "🔰",
     "🪧",
-    "🧾",
     "🪵",
     "📖",
 ))
