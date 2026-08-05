@@ -8,7 +8,7 @@
 # Q.v. https://github.com/kami-lel/kaye-commit-sense
 ################################################################################
 set -euo pipefail
-readonly VERSION="1.1.2"
+readonly VERSION="1.2.0"
 
 
 ################################################################################
@@ -373,20 +373,7 @@ resolve_config() {  # ----------------------------------------------------------
 
     # default kept below Dify's 100s cutoff; only no-op paths meet 2s
     KCSH_REQUEST_TIMEOUT_SEC="${KCSH_REQUEST_TIMEOUT_SEC:-45}"
-    KCSH_DISABLE_MD_SYNTAX="${KCSH_DISABLE_MD_SYNTAX:-False}"
     resolve_dify_username
-    return 0
-}
-
-
-# is_md_syntax_disabled()
-#
-# normalize KCSH_DISABLE_MD_SYNTAX into a lowercase jq boolean
-is_md_syntax_disabled() {  # ---------------------------------------------------
-    case "${KCSH_DISABLE_MD_SYNTAX}" in
-    [Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]) printf 'true' ;;
-    *) printf 'false' ;;
-    esac
     return 0
 }
 
@@ -431,13 +418,6 @@ run_verify() {  # --------------------------------------------------------------
             | kamilog logger info "${LOGGER_ROOT}" >&2
         printf 'request timeout: %s second\n' "${KCSH_REQUEST_TIMEOUT_SEC}" \
             | kamilog logger info "${LOGGER_ROOT}" >&2
-        if [[ "$(is_md_syntax_disabled)" == true ]]; then
-            printf 'markdown syntax: disabled\n' \
-                | kamilog logger info "${LOGGER_ROOT}" >&2
-        else
-            printf 'markdown syntax: enabled\n' \
-                | kamilog logger info "${LOGGER_ROOT}" >&2
-        fi
         if [[ "${dify_username_source}" == "fallback" ]]; then
             # never fatal; an anonymous caller still gets its message
             printf 'dify username:\t%s\n(no identity found to name you)\n' \
@@ -502,14 +482,12 @@ readonly LOGGER_DIFY="${LOGGER_ROOT}.dify"
 build_chat_request() {  # ------------------------------------------------------
     local -r diff="$1"
     local -r user="$2"
-    local -r disable_md_syntax="$3"
 
     "${JQ_BIN}" -n \
         --arg query "${diff}" \
-        --arg user "${user}" \
-        --argjson disable_md_syntax "${disable_md_syntax}" '{
+        --arg user "${user}" '{
         query: $query,
-        inputs: { disable_md_syntax: $disable_md_syntax },
+        inputs: {},
         response_mode: "blocking",
         auto_generate_name: false,
         user: $user
@@ -569,8 +547,7 @@ call_dify_chat() {  # ----------------------------------------------------------
     local body response http_status answer
     local -a runner=()
 
-    body="$(build_chat_request "${diff}" "${KCSH_DIFY_USERNAME}" \
-        "$(is_md_syntax_disabled)")"
+    body="$(build_chat_request "${diff}" "${KCSH_DIFY_USERNAME}")"
 
     # hard kill if curl ever ignores its own --max-time
     if [[ -n "${_TIMEOUT_BIN}" ]]; then
@@ -814,7 +791,6 @@ environment:
   KCSH_DIFY_USERNAME                identifies the caller in Dify's logs; optional;
                                     default to use git config user.email
   KCSH_REQUEST_TIMEOUT_SEC          network request timeout, in seconds; optional, default=45
-  KCSH_DISABLE_MD_SYNTAX            disables Markdown syntax in the generated message; optional, default=False
   KCSH_ENABLE_SKIPPING              whether skips this hook entirely; optional, default=False
 
 exit codes:

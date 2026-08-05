@@ -8,10 +8,10 @@
 set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly HOOK_SCRIPT="${SCRIPT_DIR}/../kaye-commit-sense-hook.sh"
+readonly HOOK_SCRIPT="${SCRIPT_DIR}/../src/kaye-commit-sense-hook.sh"
 readonly DIFF_FILE="${SCRIPT_DIR}/diffs/mux-files.diff"
 
-# shellcheck source=../kaye-commit-sense-hook.sh
+# shellcheck source=../src/kaye-commit-sense-hook.sh
 source "${HOOK_SCRIPT}"
 
 diff="$(cat "${DIFF_FILE}")"

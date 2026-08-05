@@ -44,7 +44,7 @@ key
 
 ## Setup
 
-Copy both files into the repository's hooks directory:
+Copy both files from `src/` into the repository's hooks directory:
 
 ```
 your-repo/
@@ -69,7 +69,7 @@ export KCSH_DIFY_SERVICE_API_ENDPOINT="http://your-dify-instance/v1"
 
 Run the preflight check to confirm everything is wired correctly:
 ```bash
-./kaye-commit-sense-hook.sh --verify
+./src/kaye-commit-sense-hook.sh --verify
 ```
 
 
@@ -96,7 +96,7 @@ KCSH_ENABLE_SKIPPING=1 git commit
 
 For help:
 ```bash
-./kaye-commit-sense-hook.sh --help
+./src/kaye-commit-sense-hook.sh --help
 ```
 
 
@@ -121,7 +121,6 @@ the environment:
 | --- | --- | --- |
 | `KCSH_DIFY_USERNAME` | names the caller in the Dify app's *Logs & Annotations* | `git config user.email`, then `user` |
 | `KCSH_REQUEST_TIMEOUT_SEC` | bounds the network request, in seconds | `45` |
-| `KCSH_DISABLE_MD_SYNTAX` | strips Markdown syntax from the generated message | `False` |
 | `KCSH_ENABLE_SKIPPING` | any non-empty value skips generation entirely | unset |
 
 `KCSH_DIFY_USERNAME` is book-keeping on the Dify side alone — it never reaches

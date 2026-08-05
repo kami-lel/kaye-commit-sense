@@ -16,14 +16,6 @@ version: 0.5.0
 workflow:
   conversation_variables: []
   environment_variables:
-  - description: ''
-    id: 7c90748e-9fc7-4680-b953-7f183eb21bd3
-    name: ADD_DEL_BALANCE_TOLERANCE
-    selector:
-    - env
-    - ADD_DEL_BALANCE_TOLERANCE
-    value: 0.1
-    value_type: float
   - description: 'Kaye Flask API''s IP accessible to this Dify App, e.g. "11.22.33.44";
 
       default Docker gateway: "172.17.0.1"'
@@ -257,17 +249,8 @@ workflow:
         selected: false
         title: User Input
         type: start
-        variables:
-        - default: true
-          hint: ''
-          label: allows_md
-          max_length: 48
-          options: []
-          placeholder: ''
-          required: false
-          type: checkbox
-          variable: allows_md
-      height: 108
+        variables: []
+      height: 72
       id: '1775587230054'
       position:
         x: 50.9526206193467
@@ -289,7 +272,7 @@ workflow:
           type: none
         headers: ''
         method: get
-        params: allows_md:{{#1784712853898.allows_md_query_value#}}
+        params: ''
         retry_config:
           max_retries: 3
           retry_enabled: true
@@ -361,10 +344,10 @@ workflow:
       height: 101
       id: '1775588454795'
       position:
-        x: 2365.8399223882
+        x: 2441.9262780377385
         y: 303
       positionAbsolute:
-        x: 2365.8399223882
+        x: 2441.9262780377385
         y: 303
       selected: false
       sourcePosition: right
@@ -374,35 +357,28 @@ workflow:
     - data:
         code: "# pylint: disable=missing-module-docstring\n\n\nimport re\n\n# output\
           \ keys  #################################################################\n\
-          \nOUTPUT_SKIP_PRIMARY = \"skip_primary_message\"\nOUTPUT_ALLOWS_MD_API =\
-          \ \"allows_md_query_value\"\nOUTPUT_PER_FILE_DIFF = \"per_file_diff\"\n\
-          OUTPUT_FILENAMES = \"filenames\"\n\n\n# constants  ###################################################################\n\
+          \nOUTPUT_SKIP_PRIMARY = \"skip_primary_message\"\nOUTPUT_PER_FILE_DIFF =\
+          \ \"per_file_diff\"\nOUTPUT_FILENAMES = \"filenames\"\n\n\n# constants \
+          \ ###################################################################\n\
           DIFF_GIT = \"diff --git\"\nREGEX_PATTERN = r\".+\\/(.+)\"\n\n\n# Entry Point\
           \  #################################################################\ndef\
-          \ main(content: str, allows_md: bool):\n    \"\"\"\n    perform pre-process\
-          \ directly on inputs:\n\n    - split the full diff content per file\n  \
-          \  - extract each file's name, ordered the same as ``per_file_diff``\n \
-          \   - decide if there is only one file change, to skip the primary message\n\
-          \    - pass through ``allows_md`` as ``1/2`` as URL query parameter value\n\
-          \n\n    :param content:\n    :type content: str\n    :param allows_md:\n\
-          \    :type allows_md: bool\n    :return: {\n        \"skip_primary_message\"\
-          : if the given content contains only single file\n        \"allows_md_query_value\"\
-          : old query value of ``allows_md_number``\n        \"per_file_diff\": a\
-          \ list of all files' diff content\n        \"filenames\": a list of all\
+          \ main(content: str):\n    \"\"\"\n    perform pre-process directly on inputs:\n\
+          \n    - split the full diff content per file\n    - extract each file's\
+          \ name, ordered the same as ``per_file_diff``\n    - decide if there is\
+          \ only one file change, to skip the primary message\n\n\n    :param content:\n\
+          \    :type content: str\n    :return: {\n        \"skip_primary_message\"\
+          : if the given content contains only single file\n        \"per_file_diff\"\
+          : a list of all files' diff content\n        \"filenames\": a list of all\
           \ files' name\n    }\n    :rtype: dict{\n        \"skip_primary_message\"\
-          : bool\n        \"allows_md_query_value\": int\n        \"per_file_diff\"\
-          : list[str]\n        \"filenames\": list[str]\n    }\n    \"\"\"\n    per_file_diff\
-          \ = []\n    filenames = []\n\n    for segment in content.split(DIFF_GIT)[1:]:\n\
-          \        per_file_diff.append(DIFF_GIT + segment)\n        filenames.append(re.match(REGEX_PATTERN,\
-          \ segment).group(1))\n\n    skip_primary_message = len(per_file_diff) ==\
-          \ 1\n\n    return {\n        OUTPUT_SKIP_PRIMARY: skip_primary_message,\n\
-          \        OUTPUT_ALLOWS_MD_API: 1 if allows_md else 0,\n        OUTPUT_PER_FILE_DIFF:\
+          : bool\n        \"per_file_diff\": list[str]\n        \"filenames\": list[str]\n\
+          \    }\n    \"\"\"\n    per_file_diff = []\n    filenames = []\n\n    for\
+          \ segment in content.split(DIFF_GIT)[1:]:\n        per_file_diff.append(DIFF_GIT\
+          \ + segment)\n        filenames.append(re.match(REGEX_PATTERN, segment).group(1))\n\
+          \n    skip_primary_message = len(per_file_diff) == 1\n\n    return {\n \
+          \       OUTPUT_SKIP_PRIMARY: skip_primary_message,\n        OUTPUT_PER_FILE_DIFF:\
           \ per_file_diff,\n        OUTPUT_FILENAMES: filenames,\n    }\n\n"
         code_language: python3
         outputs:
-          allows_md_query_value:
-            children: null
-            type: number
           filenames:
             children: null
             type: array[string]
@@ -421,11 +397,6 @@ workflow:
           - query
           value_type: string
           variable: content
-        - value_selector:
-          - '1775587230054'
-          - allows_md
-          value_type: boolean
-          variable: allows_md
       height: 51
       id: '1784712853898'
       position:
@@ -477,7 +448,7 @@ workflow:
           type: none
         headers: ''
         method: get
-        params: allows_md:{{#1784712853898.allows_md_query_value#}}
+        params: ''
         retry_config:
           max_retries: 3
           retry_enabled: true
@@ -500,7 +471,7 @@ workflow:
       positionAbsolute:
         x: 873.9601904472995
         y: 536.2574064245854
-      selected: false
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -573,11 +544,11 @@ workflow:
       id: '1784713643712017847136437131'
       parentId: '17847136437120'
       position:
-        x: 111.57533667251096
-        y: 63.29709258450214
+        x: 110.24048832778226
+        y: 65
       positionAbsolute:
-        x: 1346.887274641993
-        y: 599.5544990090875
+        x: 1345.5524262972642
+        y: 601.2574064245854
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -612,60 +583,49 @@ workflow:
           OUTPUT_ANSWER = \"answer\"\n\n\n# input keys  ##################################################################\n\
           KEY_SIGIL = \"sigil\"\nKEY_MESSAGE = \"message\"\n\n\n# constants  ###################################################################\n\
           ANSWER_TEMPLATE = \"{}\\n\\n{}\"\n\n\n# auxiliaries  #################################################################\n\
-          \n\ndef _format_line(sigil, filename, message, allows_md):\n    \"\"\"\n\
-          \    :return: formatted sigil/filename/message line\n    :rtype: str\n \
-          \   \"\"\"\n    if message:\n        line_pattern = \"{}`{}` {}\" if allows_md\
-          \ else \"{}[{}] {}\"\n        line = line_pattern.format(sigil, filename,\
-          \ message)\n    else:\n        line_pattern = \"{}`{}`\" if allows_md else\
-          \ \"{}[{}]\"\n        line = line_pattern.format(sigil, filename)\n\n  \
-          \  # hack prepend space for \"#\" to avoid it get cleaned, need better solution\n\
-          \    if sigil == \"#\":\n        line = \" \" + line\n\n    return line\n\
-          \n\ndef _merge_single(allows_md, filenames, per_file_extracts):\n    \"\"\
-          \"\n    merge the answer for the single-file, no-primary-message scenario\n\
+          \n\ndef _format_line(sigil, filename, message):\n    \"\"\"\n    :return:\
+          \ formatted sigil/filename/message line\n    :rtype: str\n    \"\"\"\n \
+          \   if message:\n        line = \"{}`{}` {}\".format(sigil, filename, message)\n\
+          \    else:\n        line = \"{}`{}`\".format(sigil, filename)\n\n    return\
+          \ line\n\n\ndef _merge_single(filenames, per_file_extracts):\n    \"\"\"\
+          \n    merge the answer for the single-file, no-primary-message scenario\n\
           \    \"\"\"\n    filename = filenames[0]\n    file_extract = per_file_extracts[0]\n\
           \    sigil = file_extract[KEY_SIGIL]\n    message = file_extract[KEY_MESSAGE]\n\
-          \n    filename_line = _format_line(sigil, filename, \"\", allows_md)\n\n\
-          \    return ANSWER_TEMPLATE.format(message, filename_line)\n\n\ndef _merge_multiple(allows_md,\
-          \ filenames, per_file_extracts, primary_message):\n    \"\"\"\n    merge\
-          \ the answer for the multiple-file, with-primary-message scenario\n    \"\
-          \"\"\n    lines = []\n    for filename, file_extract in zip(filenames, per_file_extracts):\n\
+          \n    filename_line = _format_line(sigil, filename, \"\")\n\n    return\
+          \ ANSWER_TEMPLATE.format(message, filename_line)\n\n\ndef _merge_multiple(filenames,\
+          \ per_file_extracts, primary_message):\n    \"\"\"\n    merge the answer\
+          \ for the multiple-file, with-primary-message scenario\n    \"\"\"\n   \
+          \ lines = []\n    for filename, file_extract in zip(filenames, per_file_extracts):\n\
           \        sigil = file_extract[KEY_SIGIL]\n        message = file_extract[KEY_MESSAGE]\n\
-          \        line = _format_line(sigil, filename, message, allows_md)\n    \
-          \    lines.append(line)\n\n    return ANSWER_TEMPLATE.format(primary_message,\
-          \ \"\\n\".join(lines))\n\n\n# Entry Point  #################################################################\n\
-          def main(\n    allows_md: bool,\n    skip_primary_message: bool,\n    filenames:\
-          \ list[str],\n    per_file_extracts: list[dict],\n    primary_message: str,\n\
-          ):\n    \"\"\"\n    merge to produce the final answer, from all per-file\
-          \ extracts\n\n    - when ``skip_primary_message`` is set, only a single\
-          \ file is\n      involved, so the answer is the file's message followed\
-          \ by its\n      sigil/filename line\n    - otherwise, the answer is the\
-          \ primary message followed by one\n      line per file, each with its sigil,\
-          \ filename, and message\n\n\n    :param allows_md: whether utilize md format\
-          \ in final result\n    :type allows_md: bool\n    :param skip_primary_message:\
-          \ whether only a single file is involved\n    :type skip_primary_message:\
-          \ bool\n    :param filenames:\n    :type filenames: list[str]\n    :param\
-          \ per_file_extracts: opt_obj entries, as returned by post_per_file\n   \
-          \ :type per_file_extracts: list[dict]\n    :param primary_message:\n   \
-          \ :type primary_message: str\n    :return: {\"answer\": merged final answer}\n\
-          \    :rtype: dict{\"answer\": str}\n    \"\"\"\n    if skip_primary_message:\n\
-          \        answer = _merge_single(allows_md, filenames, per_file_extracts)\n\
-          \    else:\n        answer = _merge_multiple(\n            allows_md, filenames,\
-          \ per_file_extracts, primary_message\n        )\n\n    return {OUTPUT_ANSWER:\
-          \ answer}\n\n"
+          \        line = _format_line(sigil, filename, message)\n        lines.append(line)\n\
+          \n    return ANSWER_TEMPLATE.format(primary_message, \"\\n\".join(lines))\n\
+          \n\n# Main Entry Point  ############################################################\n\
+          def main(\n    skip_primary_message: bool,\n    filenames: list[str],\n\
+          \    per_file_extracts: list[dict],\n    primary_message: str,\n):\n   \
+          \ \"\"\"\n    merge to produce the final answer, from all per-file extracts\n\
+          \n    - when ``skip_primary_message`` is set, only a single file is\n  \
+          \    involved, so the answer is the file's message followed by its\n   \
+          \   sigil/filename line\n    - otherwise, the answer is the primary message\
+          \ followed by one\n      line per file, each with its sigil, filename, and\
+          \ message\n\n\n    :param skip_primary_message: whether only a single file\
+          \ is involved\n    :type skip_primary_message: bool\n    :param filenames:\n\
+          \    :type filenames: list[str]\n    :param per_file_extracts: opt_obj entries,\
+          \ as returned by post_per_file\n    :type per_file_extracts: list[dict]\n\
+          \    :param primary_message:\n    :type primary_message: str\n    :return:\
+          \ {\"answer\": merged final answer}\n    :rtype: dict{\"answer\": str}\n\
+          \    \"\"\"\n    if skip_primary_message:\n        answer = _merge_single(filenames,\
+          \ per_file_extracts)\n    else:\n        answer = _merge_multiple(filenames,\
+          \ per_file_extracts, primary_message)\n\n    return {OUTPUT_ANSWER: answer}\n\
+          \n"
         code_language: python3
         outputs:
           answer:
             children: null
             type: string
-        selected: true
+        selected: false
         title: merge_final_answer
         type: code
         variables:
-        - value_selector:
-          - '1775587230054'
-          - allows_md
-          value_type: boolean
-          variable: allows_md
         - value_selector:
           - '1784712853898'
           - skip_primary_message
@@ -689,12 +649,12 @@ workflow:
       height: 51
       id: '1784718530590'
       position:
-        x: 2038.5682732510259
+        x: 2037.233424906297
         y: 303
       positionAbsolute:
-        x: 2038.5682732510259
+        x: 2037.233424906297
         y: 303
-      selected: true
+      selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -703,43 +663,59 @@ workflow:
         code: "# pylint: disable=missing-module-docstring\n# pylint: disable=invalid-name\n\
           \n\n# output keys  #################################################################\n\
           OUTPUT_OPT_OBJ = \"opt_obj\"\n\n\n# constants  ###################################################################\n\
-          \nSIGIL_ADD_SHORT = \"+\"\nSIGIL_DEL_SHORT = \"-\"\nSIGIL_BALANCED_SHORT\
-          \ = \"*\"\nSIGIL_ADD_LONG = \"/\"\nSIGIL_DEL_LONG = \"\\\\\"\nSIGIL_BALANCED_LONG\
-          \ = \"|\"\n\nVALID_SIGILS = frozenset(\"?^!:=.@#~*\")\n\n\n# auxiliaries\
-          \  ##################################################################\n\
-          def _resolve_ordinary_sigil(\n    LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE,\
-          \ per_file_diff\n):\n    \"\"\"\n    resolve the ordinary-edit sigil for\
-          \ a diff, from its add/delete\n    balance and its long/short form\n\n\n\
-          \    :return: the resolved ordinary-edit sigil\n    :rtype: str\n    \"\"\
-          \"\n    added = 0\n    deleted = 0\n\n    for line in per_file_diff.split(\"\
+          \n# ordinary-edit sigils, indexed by add/delete lean: addition, balanced,\
+          \ deletion\nSIGILS_SHORT = (\"\U0001F7E2\", \"\U0001F7E1\", \"\U0001F534\
+          \")\nSIGILS_LONG = (\"\U0001F7E9\", \"\U0001F7E8\", \"\U0001F7E5\")\n\n\
+          # special-case sigils the LLM may emit directly\nVALID_SIGILS = frozenset((\n\
+          \    \"\U0001F522\",\n    \"\U0001F4C4\",\n    \"\U0001F5D1️\",\n    \"\U0001F4C2\
+          \",\n    \"\U0001F4DB\",\n    \"\U0001F512\",\n    \"\U0001F4CF\",\n   \
+          \ \"\U0001F516\",\n    \"\U0001F4DD\",\n    \"♻️\",\n    \"\U0001F916\"\
+          ,\n    \"\U0001F9EA\",\n    \"\U0001F9F8\",\n    \"\U0001F528\",\n    \"\
+          \U0001F4E6\",\n    \"⚙️\",\n    \"\U0001F530\",\n    \"\U0001F3F7️\",\n\
+          \    \"\U0001FAA7\",\n    \"\U0001FAB5\",\n    \"\U0001F4D6\",\n))\n\n#\
+          \ add/delete lean knobs  =======================================================\n\
+          \n# imaginary lines credited to both sides, swamping low-volume counts\n\
+          LEAN_PSEUDOCOUNT = 2\n\n# integer form of the log-odds cut: 12/5 = 2.4 approximates\
+          \ exp(0.85)\nLEAN_CUT_HIGH = 12\nLEAN_CUT_LOW = 5\n\n\n# auxiliaries  #################################################################\n\
+          def _decide_add_del_balance(added, deleted):\n    \"\"\"\n    see ``docs/diff-shape-classification.md``\n\
+          \n    :return: which way the diff leans, judging the add/delete gap\n  \
+          \          by smoothed log-odds, with the pure cases short-circuited:\n\
+          \            0 addition, 1 balanced, 2 deletion\n    :rtype: int\n    \"\
+          \"\"\n    assert added or deleted, \"an empty diff has no lean\"\n\n   \
+          \ if deleted == 0:\n        return 0\n    if added == 0:\n        return\
+          \ 2\n\n    smoothed_added = added + LEAN_PSEUDOCOUNT\n    smoothed_deleted\
+          \ = deleted + LEAN_PSEUDOCOUNT\n\n    # mutually exclusive, so their order\
+          \ is immaterial\n    if LEAN_CUT_LOW * smoothed_added > LEAN_CUT_HIGH *\
+          \ smoothed_deleted:\n        return 0\n    if LEAN_CUT_LOW * smoothed_deleted\
+          \ > LEAN_CUT_HIGH * smoothed_added:\n        return 2\n    return 1\n\n\n\
+          def _resolve_ordinary_sigil(LONG_SHORT_THRESHOLD, per_file_diff):\n    \"\
+          \"\"\n    :return: ordinary-edit sigil for the diff,\n            resolved\
+          \ from its add/delete balance and its long/short form\n    :rtype: str\n\
+          \    \"\"\"\n    added = 0\n    deleted = 0\n\n    for line in per_file_diff.split(\"\
           \\n\"):\n        if line.startswith(\"+++\") or line.startswith(\"---\"\
           ):\n            continue\n        if line.startswith(\"+\"):\n         \
           \   added += 1\n        elif line.startswith(\"-\"):\n            deleted\
           \ += 1\n\n    is_long = per_file_diff.count(\"\\n\") > LONG_SHORT_THRESHOLD\n\
-          \    largest = max(added, deleted, 1)\n    is_balanced = abs(added - deleted)\
-          \ <= ADD_DEL_BALANCE_TOLERANCE * largest\n\n    if is_balanced:\n      \
-          \  return SIGIL_BALANCED_LONG if is_long else SIGIL_BALANCED_SHORT\n   \
-          \ if added > deleted:\n        return SIGIL_ADD_LONG if is_long else SIGIL_ADD_SHORT\n\
-          \    return SIGIL_DEL_LONG if is_long else SIGIL_DEL_SHORT\n\n\n# Entry\
-          \ Point  #################################################################\n\
-          def main(\n    LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE, per_file_diff,\
-          \ llm_message\n):\n    \"\"\"\n    perform post-process directly on the\
-          \ LLM's per-file output:\n\n    - split ``llm_message`` into its sigil line\
-          \ and summary line\n    - when the sigil is not a valid single-character\
-          \ sigil, resolve\n      the real sigil from ``per_file_diff``'s add/delete\
-          \ balance and\n      length against ``LONG_SHORT_THRESHOLD``\n\n\n    :param\
-          \ LONG_SHORT_THRESHOLD: newline-count cutoff above which a\n           \
-          \ diff is classified as long rather than short\n    :type LONG_SHORT_THRESHOLD:\
-          \ float\n    :param per_file_diff:\n    :type per_file_diff: str\n    :param\
-          \ llm_message:\n    :type llm_message: str\n    :return: {\n        \"opt_obj\"\
-          : the resolved sigil and message for this file\n    }\n    :rtype: dict{\n\
-          \        \"opt_obj\": dict{\"sigil\": str, \"message\": str}\n    }\n  \
-          \  \"\"\"\n    sigil, _, message = llm_message.strip(\"\\n\").partition(\"\
-          \\n\")\n    sigil = sigil.strip()\n    message = message.strip()\n\n   \
-          \ if not (len(sigil) == 1 and sigil in VALID_SIGILS):\n        sigil = _resolve_ordinary_sigil(\n\
-          \            LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE, per_file_diff\n\
-          \        )\n\n    opt_obj = {\"sigil\": sigil, \"message\": message}\n\n\
-          \    return {OUTPUT_OPT_OBJ: opt_obj}\n\n"
+          \    lean = _decide_add_del_balance(added, deleted)\n\n    symbol = SIGILS_LONG[lean]\
+          \ if is_long else SIGILS_SHORT[lean]\n\n    return symbol\n\n\n# Main Entry\
+          \ Point  ############################################################\n\
+          def main(LONG_SHORT_THRESHOLD, per_file_diff, llm_message):\n    \"\"\"\n\
+          \    perform post-process directly on the LLM's per-file output:\n\n   \
+          \ - split ``llm_message`` into its sigil line and summary line\n    - when\
+          \ the sigil is not one of the recognized special-case sigils, resolve\n\
+          \      the real sigil from ``per_file_diff``'s add/delete balance and\n\
+          \      length against ``LONG_SHORT_THRESHOLD``\n\n\n    :param LONG_SHORT_THRESHOLD:\
+          \ newline-count cutoff above which a\n            diff is classified as\
+          \ long rather than short\n    :type LONG_SHORT_THRESHOLD: float\n    :param\
+          \ per_file_diff:\n    :type per_file_diff: str\n    :param llm_message:\n\
+          \    :type llm_message: str\n    :return: {\n        \"opt_obj\": the resolved\
+          \ sigil and message for this file\n    }\n    :rtype: dict{\n        \"\
+          opt_obj\": dict{\"sigil\": str, \"message\": str}\n    }\n    \"\"\"\n \
+          \   sigil, _, message = llm_message.strip(\"\\n\").partition(\"\\n\")\n\
+          \    sigil = sigil.strip()\n    message = message.strip()\n\n    if sigil\
+          \ not in VALID_SIGILS:\n        sigil = _resolve_ordinary_sigil(LONG_SHORT_THRESHOLD,\
+          \ per_file_diff)\n\n    opt_obj = {\"sigil\": sigil, \"message\": message}\n\
+          \n    return {OUTPUT_OPT_OBJ: opt_obj}\n\n"
         code_language: python3
         isInIteration: true
         isInLoop: false
@@ -758,11 +734,6 @@ workflow:
           value_type: number
           variable: LONG_SHORT_THRESHOLD
         - value_selector:
-          - env
-          - ADD_DEL_BALANCE_TOLERANCE
-          value_type: number
-          variable: ADD_DEL_BALANCE_TOLERANCE
-        - value_selector:
           - '17847136437120'
           - item
           value_type: string
@@ -776,10 +747,10 @@ workflow:
       id: '1784719997268'
       parentId: '17847136437120'
       position:
-        x: 417
+        x: 415.6651516552711
         y: 65
       positionAbsolute:
-        x: 1652.311937969482
+        x: 1650.977089624753
         y: 601.2574064245854
       selected: false
       sourcePosition: right
@@ -788,7 +759,7 @@ workflow:
       width: 241
       zIndex: 1002
     viewport:
-      x: -1093.5457303506892
-      y: 14.738372033679298
+      x: -443.6385028731164
+      y: -58.32409136285503
       zoom: 0.7491487733036917
   rag_pipeline_variables: []

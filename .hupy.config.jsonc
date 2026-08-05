@@ -22,11 +22,11 @@
     "allow_version_uniformity_failure": false,
     "version_occurrences": [
       {
-        "file": "kaye-commit-sense-hook.sh",
+        "file": "src/kaye-commit-sense-hook.sh",
         "glob": "^readonly VERSION=\"([^\"]+)\"$"
       },
       {
-        "file": "prepare-commit-msg",
+        "file": "src/prepare-commit-msg",
         "glob": "^# Part of Kaye Commit Sense v([^ ]+)$"
       }
     ]
@@ -105,12 +105,11 @@
     // disable PT
     "is_disabled": false,
     "trails": [
-      // example entry:
-      // {
-      //   "remark": "Changelog Entry Required on Feature Landing",
-      //   "glob": "CHANGELOG.md",
-      //   "allow_commit_types": ["FEATURE_LANDING"]
-      // }
+      {
+        "remark": "Dify Studio Export Re-Synced",
+        "glob": "dify_studio_app/Kaye_Commit_Sense.yml",
+        "allow_commit_types": ["RELEASE"]
+      }
     ]
   },
   "pch": { // Prepend Commit Header ############################################
@@ -156,7 +155,7 @@
       "lead": [
         {
           "remark": "Kaye Commit Sense",
-          "cmd": "./kaye-commit-sense-hook.sh",
+          "cmd": "./src/kaye-commit-sense-hook.sh",
           "allow_failure": true,
           "timeout": 60.0
         }

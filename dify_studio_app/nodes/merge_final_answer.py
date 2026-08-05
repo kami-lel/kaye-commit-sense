@@ -17,26 +17,20 @@ ANSWER_TEMPLATE = "{}\n\n{}"
 # auxiliaries  #################################################################
 
 
-def _format_line(sigil, filename, message, allows_md):
+def _format_line(sigil, filename, message):
     """
     :return: formatted sigil/filename/message line
     :rtype: str
     """
     if message:
-        line_pattern = "{}`{}` {}" if allows_md else "{}[{}] {}"
-        line = line_pattern.format(sigil, filename, message)
+        line = "{}`{}` {}".format(sigil, filename, message)
     else:
-        line_pattern = "{}`{}`" if allows_md else "{}[{}]"
-        line = line_pattern.format(sigil, filename)
-
-    # hack prepend space for "#" to avoid it get cleaned, need better solution
-    if sigil == "#":
-        line = " " + line
+        line = "{}`{}`".format(sigil, filename)
 
     return line
 
 
-def _merge_single(allows_md, filenames, per_file_extracts):
+def _merge_single(filenames, per_file_extracts):
     """
     merge the answer for the single-file, no-primary-message scenario
     """
@@ -45,12 +39,12 @@ def _merge_single(allows_md, filenames, per_file_extracts):
     sigil = file_extract[KEY_SIGIL]
     message = file_extract[KEY_MESSAGE]
 
-    filename_line = _format_line(sigil, filename, "", allows_md)
+    filename_line = _format_line(sigil, filename, "")
 
     return ANSWER_TEMPLATE.format(message, filename_line)
 
 
-def _merge_multiple(allows_md, filenames, per_file_extracts, primary_message):
+def _merge_multiple(filenames, per_file_extracts, primary_message):
     """
     merge the answer for the multiple-file, with-primary-message scenario
     """
@@ -58,15 +52,14 @@ def _merge_multiple(allows_md, filenames, per_file_extracts, primary_message):
     for filename, file_extract in zip(filenames, per_file_extracts):
         sigil = file_extract[KEY_SIGIL]
         message = file_extract[KEY_MESSAGE]
-        line = _format_line(sigil, filename, message, allows_md)
+        line = _format_line(sigil, filename, message)
         lines.append(line)
 
     return ANSWER_TEMPLATE.format(primary_message, "\n".join(lines))
 
 
-# Entry Point  #################################################################
+# Main Entry Point  ############################################################
 def main(
-    allows_md: bool,
     skip_primary_message: bool,
     filenames: list[str],
     per_file_extracts: list[dict],
@@ -82,8 +75,6 @@ def main(
       line per file, each with its sigil, filename, and message
 
 
-    :param allows_md: whether utilize md format in final result
-    :type allows_md: bool
     :param skip_primary_message: whether only a single file is involved
     :type skip_primary_message: bool
     :param filenames:
@@ -96,10 +87,8 @@ def main(
     :rtype: dict{"answer": str}
     """
     if skip_primary_message:
-        answer = _merge_single(allows_md, filenames, per_file_extracts)
+        answer = _merge_single(filenames, per_file_extracts)
     else:
-        answer = _merge_multiple(
-            allows_md, filenames, per_file_extracts, primary_message
-        )
+        answer = _merge_multiple(filenames, per_file_extracts, primary_message)
 
     return {OUTPUT_ANSWER: answer}

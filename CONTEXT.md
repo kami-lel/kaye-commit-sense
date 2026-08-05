@@ -57,10 +57,8 @@ skip source, a missing dependency); an actual Dify call is bounded by
 
 Configuration arrives through the environment, every name prefixed `KCSH_`:
 `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
-required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
-`KCSH_DISABLE_MD_SYNTAX` (default `False`, forwarded to the request as
-`inputs.disable_md_syntax`) are optional. The caller identifier sent as the
-request's `user` field comes from `KCSH_DIFY_USERNAME`, falling back to
+required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) is optional. The caller
+identifier sent as the request's `user` field comes from `KCSH_DIFY_USERNAME`, falling back to
 `git config user.email` and then to the literal `"user"`. No credential is
 stored in the repository.
 
@@ -285,7 +283,7 @@ This repository manages its own Git hooks through a separate tool, **hupy**,
 so `kaye-commit-sense-hook.sh` never ran against a commit made in its own
 repository — `.git/hooks/prepare-commit-msg` here only ever invoked hupy's
 dispatcher. `.hupy.config.jsonc`'s `hb.prepare_commit_msg.lead` now wires
-`./kaye-commit-sense-hook.sh` in ahead of hupy's own core logic; hupy
+`./src/kaye-commit-sense-hook.sh` in ahead of hupy's own core logic; hupy
 forwards the raw `$1`/`$2`/`$3` hook arguments to lead commands, so no
 argument-passing shim was needed. This only wires the mechanism — the
 `KCSH_DIFY_SERVICE_API_ENDPOINT`/`KCSH_DIFY_SERVICE_API_SECRET_KEY`
@@ -298,11 +296,11 @@ All components are now implemented:
 
 - **`--verify` preflight** ✓ — checks dependencies, hook installation,
   resolves configuration, calls `GET /info`, and confirms the app mode is
-  `advanced-chat`. Logs the resolved API endpoint, request timeout,
-  Markdown-syntax setting, and caller identifier with the source it came
-  from, then reports each check on stderr and exits non-zero on first
-  failure — the sole command in this script allowed to. An identifier that
-  fell through to the literal `"user"` warns without failing the run.
+  `advanced-chat`. Logs the resolved API endpoint, request timeout, and
+  caller identifier with the source it came from, then reports each check
+  on stderr and exits non-zero on first failure — the sole command in this
+  script allowed to. An identifier that fell through to the literal
+  `"user"` warns without failing the run.
 - **hook gate** ✓ — skips generation when `KCSH_ENABLE_SKIPPING` is set, when
   `$2` indicates reuse (message/merge/squash/commit), or when the staged diff
   is empty.
@@ -314,8 +312,7 @@ All components are now implemented:
   message.
 - **environment variables** — every name is prefixed `KCSH_`:
   `KCSH_DIFY_SERVICE_API_ENDPOINT` and `KCSH_DIFY_SERVICE_API_SECRET_KEY` are
-  required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) and
-  `KCSH_DISABLE_MD_SYNTAX` (default `False`) are optional, as is
+  required; `KCSH_REQUEST_TIMEOUT_SEC` (default `45`) is optional, as is
   `KCSH_DIFY_USERNAME`, which names the caller in the Dify app's logs.
   `resolve_dify_username` resolves it from that variable, then from
   `git config user.email`, then from the literal `"user"`; the Git display
@@ -335,8 +332,7 @@ All components are now implemented:
   `KCSH_DIFY_USERNAME`, or from `git config user.email`, or from `"user"`
 - `KCSH_ENABLE_SKIPPING` (any non-empty value) short-circuits the run, since
   `--no-verify` does not affect `prepare-commit-msg`
-- `KCSH_REQUEST_TIMEOUT_SEC` and `KCSH_DISABLE_MD_SYNTAX` fall back to `45`
-  and `False` respectively when unset
+- `KCSH_REQUEST_TIMEOUT_SEC` falls back to `45` when unset
 - the run is non-interactive — feedback goes to `stderr`, never `stdout`
 - the hook path (`run_hook`) always exits `0`, even on internal failure — a
   broken generator must never block a commit. `--verify` is the sole command

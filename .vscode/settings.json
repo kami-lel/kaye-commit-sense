@@ -1,5 +1,6 @@
 {
   "better-todo-tree.filtering.excludeGlobs": [
-    "**/examples/diffs/**"
+    "**/examples/diffs/**",
+    "**.yml"
   ]
 }
