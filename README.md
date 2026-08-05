@@ -121,7 +121,6 @@ the environment:
 | --- | --- | --- |
 | `KCSH_DIFY_USERNAME` | names the caller in the Dify app's *Logs & Annotations* | `git config user.email`, then `user` |
 | `KCSH_REQUEST_TIMEOUT_SEC` | bounds the network request, in seconds | `45` |
-| `KCSH_DISABLE_MD_SYNTAX` | strips Markdown syntax from the generated message | `False` |
 | `KCSH_ENABLE_SKIPPING` | any non-empty value skips generation entirely | unset |
 
 `KCSH_DIFY_USERNAME` is book-keeping on the Dify side alone — it never reaches

@@ -1,13 +1,12 @@
 # kaye-commit-sense CHANGELOG
 
 <!--
-Todo add AI maintenance sigil
-Todo implements UTs
-Todo support emoji sigil
+Fixme paper trail the .yml file
 fixme hook logger messages are commented out for clarity
 todo add an installer
 todo utilize co-authorship, leave kaye's name
 todo support chinese
+todo implements UTs
 -->
 
 [^format]
@@ -30,11 +29,20 @@ todo support chinese
 
 ### Changed
 
+- ordinary-edit sigils now render as color-coded emoji (🟢🟡🔴 short, 🟩🟨🟥 long) instead of ASCII characters, and the LLM-emitted special-case sigils expanded from nine single characters to nineteen emoji, including a new one for version changes (🏷️)
+- `docs/kaye_commit_sense_doc.md` renamed to `docs/kcs-doc.md` and rewritten around the emoji sigil scheme
+
 ### Deprecated
 
 ### Removed
 
+- `KCSH_DISABLE_MD_SYNTAX` configuration option and the Markdown-disable feature it controlled — generated messages are now always Markdown-formatted
+- the leading-space workaround for lines sigiled `#`, no longer applicable now that sigils are emoji
+- the unused `ADD_DEL_BALANCE_TOLERANCE` parameter from `post_per_file`'s entry point
+
 ### Fixed
+
+- `post_per_file`'s docstring no longer documents the already-removed `ADD_DEL_BALANCE_TOLERANCE` parameter
 
 ### Security
 
