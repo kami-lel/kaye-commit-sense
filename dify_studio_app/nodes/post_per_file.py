@@ -112,9 +112,6 @@ def main(LONG_SHORT_THRESHOLD, per_file_diff, llm_message):
     :param LONG_SHORT_THRESHOLD: newline-count cutoff above which a
             diff is classified as long rather than short
     :type LONG_SHORT_THRESHOLD: float
-    :param ADD_DEL_BALANCE_TOLERANCE: unused, retained so the node's
-            declared inputs keep matching this signature
-    :type ADD_DEL_BALANCE_TOLERANCE: float
     :param per_file_diff:
     :type per_file_diff: str
     :param llm_message:

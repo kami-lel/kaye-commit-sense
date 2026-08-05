@@ -1,8 +1,3 @@
----
-name: kaye-commit-sense AGENTS
-alwaysApply: true
----
-
 # kaye-commit-sense AGENTS
 
 What ships is a single Bash script, `src/kaye-commit-sense-hook.sh`, that generates
@@ -52,8 +47,8 @@ and data flow.
 ## Dify App Source
 
 - `dify_studio_app/Kaye_Commit_Sense.yml` is an export from Dify Studio —
-  change the workflow in Studio and re-export, rather than hand-editing the
-  exported file
+  never hand-edit this file directly; change the workflow in Studio and
+  re-export instead
 - `dify_studio_app/nodes/*.py` mirror the scripts pasted into the workflow's
   code steps; edit the file and the step together, never one alone
 - each script exposes a `main` function whose parameters match the step's
