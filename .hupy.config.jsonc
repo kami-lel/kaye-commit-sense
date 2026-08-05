@@ -105,12 +105,11 @@
     // disable PT
     "is_disabled": false,
     "trails": [
-      // example entry:
-      // {
-      //   "remark": "Changelog Entry Required on Feature Landing",
-      //   "glob": "CHANGELOG.md",
-      //   "allow_commit_types": ["FEATURE_LANDING"]
-      // }
+      {
+        "remark": "Dify Studio Export Re-Synced",
+        "glob": "dify_studio_app/Kaye_Commit_Sense.yml",
+        "allow_commit_types": ["RELEASE"]
+      }
     ]
   },
   "pch": { // Prepend Commit Header ############################################

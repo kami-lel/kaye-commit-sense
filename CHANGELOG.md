@@ -1,7 +1,6 @@
 # kaye-commit-sense CHANGELOG
 
 <!--
-Fixme paper trail the .yml file
 fixme hook logger messages are commented out for clarity
 todo add an installer
 todo utilize co-authorship, leave kaye's name
