@@ -17,13 +17,17 @@
 | 🤖 | agent instructions changed |
 | 🧪 | tests changed |
 | 🧸 | examples or demonstration code changed |
-| ⚙️ | build or configuration changed |
+| 🔨 | build or compilation changed |
+| 📦 | packaging metadata changed |
+| ⚙️ | configuration or settings changed |
 | 🔰 | readme changed |
 | 🏷️ | version changed |
 | 🪧 | changelog changed |
 | 🪵 | development log changed |
 | 📖 | documentation changed |
+| ` ` | fallback, no rule fits or several do |
 
+> One thing I owe you, Sir: 📦 and 🏷️ now overlap, because a version bump usually *is* an edit to `pyproject.toml`. You will want a precedence line saying version wins when only the version field changed, and packaging wins when anything else in the file moved.
 These six cover the ordinary edit — the case no earlier rule claims. Color carries the balance of added against deleted lines, and shape carries the form: circle for short, square for long.
 
 | Line Balance | Short | Long |
