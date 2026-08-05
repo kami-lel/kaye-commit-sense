@@ -63,11 +63,14 @@ todo implements UTs
 - the leading-space workaround for lines sigiled `#`, no longer applicable now that sigils are emoji
 - the unused `ADD_DEL_BALANCE_TOLERANCE` parameter from `post_per_file`'s entry point
 
-### Fixed
-
-- `post_per_file`'s docstring no longer documents the already-removed `ADD_DEL_BALANCE_TOLERANCE` parameter
-
 [1.2.0]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.2...v1.2.0
+
+
+
+
+
+
+
 
 
 
