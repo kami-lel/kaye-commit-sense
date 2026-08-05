@@ -19,6 +19,7 @@
 | 🧸 | examples or demonstration code changed |
 | ⚙️ | build or configuration changed |
 | 🔰 | readme changed |
+| 🏷️ | version changed |
 | 🪧 | changelog changed |
 | 🪵 | development log changed |
 | 📖 | documentation changed |
