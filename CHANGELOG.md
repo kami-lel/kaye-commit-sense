@@ -28,10 +28,34 @@ todo implements UTs
 
 ### Changed
 
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.2.0...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.2.0] - 2026-08-06
+
+### Changed
+
 - ordinary-edit sigils now render as color-coded emoji (🟢🟡🔴 short, 🟩🟨🟥 long) instead of ASCII characters, and the LLM-emitted special-case sigils expanded from nine single characters to nineteen emoji, including a new one for version changes (🏷️)
 - `docs/kaye_commit_sense_doc.md` renamed to `docs/kcs-doc.md` and rewritten around the emoji sigil scheme
-
-### Deprecated
 
 ### Removed
 
@@ -43,16 +67,7 @@ todo implements UTs
 
 - `post_per_file`'s docstring no longer documents the already-removed `ADD_DEL_BALANCE_TOLERANCE` parameter
 
-### Security
-
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.2...dev
-
-
-
-
-
-
-
+[1.2.0]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.1.2...v1.2.0
 
 
 
