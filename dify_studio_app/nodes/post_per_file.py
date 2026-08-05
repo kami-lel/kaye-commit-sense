@@ -9,10 +9,29 @@ OUTPUT_OPT_OBJ = "opt_obj"
 # constants  ###################################################################
 
 # ordinary-edit sigils, indexed by add/delete lean: addition, balanced, deletion
-SIGILS_SHORT = "+*-"
-SIGILS_LONG = "/|\\"
+SIGILS_SHORT = ("🟢", "🟡", "🔴")
+SIGILS_LONG = ("🟩", "🟨", "🟥")
 
-VALID_SIGILS = frozenset("?^!:=.@#~*")
+# special-case sigils the LLM may emit directly, see ``docs/kcs-doc.md``
+VALID_SIGILS = frozenset((
+    "🔢",
+    "📄",
+    "🗑️",
+    "📂",
+    "📛",
+    "🔒",
+    "📏",
+    "🔖",
+    "📝",
+    "♻️",
+    "🤖",
+    "🧪",
+    "⚙️",
+    "🪧",
+    "🧾",
+    "🪵",
+    "📖",
+))
 
 # add/delete lean knobs  =======================================================
 
@@ -85,7 +104,7 @@ def main(
     perform post-process directly on the LLM's per-file output:
 
     - split ``llm_message`` into its sigil line and summary line
-    - when the sigil is not a valid single-character sigil, resolve
+    - when the sigil is not one of the recognized special-case sigils, resolve
       the real sigil from ``per_file_diff``'s add/delete balance and
       length against ``LONG_SHORT_THRESHOLD``
 
@@ -111,7 +130,7 @@ def main(
     sigil = sigil.strip()
     message = message.strip()
 
-    if not (len(sigil) == 1 and sigil in VALID_SIGILS):
+    if sigil not in VALID_SIGILS:
         sigil = _resolve_ordinary_sigil(LONG_SHORT_THRESHOLD, per_file_diff)
 
     opt_obj = {"sigil": sigil, "message": message}
