@@ -1,6 +1,6 @@
 # Kaye Commit Sense Documentation
 
-<!-- fixme improve commit sense doc -->
+<!-- Fixme improve commit sense doc -->
 
 | Sigil | Remark |
 |-------|--------|
