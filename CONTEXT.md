@@ -285,7 +285,7 @@ This repository manages its own Git hooks through a separate tool, **hupy**,
 so `kaye-commit-sense-hook.sh` never ran against a commit made in its own
 repository — `.git/hooks/prepare-commit-msg` here only ever invoked hupy's
 dispatcher. `.hupy.config.jsonc`'s `hb.prepare_commit_msg.lead` now wires
-`./kaye-commit-sense-hook.sh` in ahead of hupy's own core logic; hupy
+`./src/kaye-commit-sense-hook.sh` in ahead of hupy's own core logic; hupy
 forwards the raw `$1`/`$2`/`$3` hook arguments to lead commands, so no
 argument-passing shim was needed. This only wires the mechanism — the
 `KCSH_DIFY_SERVICE_API_ENDPOINT`/`KCSH_DIFY_SERVICE_API_SECRET_KEY`

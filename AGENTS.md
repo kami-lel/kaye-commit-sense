@@ -5,7 +5,7 @@ alwaysApply: true
 
 # kaye-commit-sense AGENTS
 
-What ships is a single Bash script, `kaye-commit-sense-hook.sh`, that generates
+What ships is a single Bash script, `src/kaye-commit-sense-hook.sh`, that generates
 Git commit messages from the staged diff via a Dify app. The app behind it is
 kept here too, under `dify_studio_app/`. See [CONTEXT.md](CONTEXT.md) for design
 and data flow.
@@ -13,7 +13,7 @@ and data flow.
 
 ## Scope
 
-- keep all hook logic in one file — `kaye-commit-sense-hook.sh`
+- keep all hook logic in one file — `src/kaye-commit-sense-hook.sh`
 - add no runtime dependencies beyond `git`, `curl`, `jq`, `mktemp`, and a POSIX
   shell
 - target **Bash**, invoked as a Git commit hook
@@ -65,7 +65,7 @@ and data flow.
 
 ## Testing Instructions
 
-- lint the script: `shellcheck kaye-commit-sense-hook.sh`
+- lint the script: `shellcheck src/kaye-commit-sense-hook.sh`
 - smoke-test the hook: stage a change, run `KCSH_ENABLE_SKIPPING=1 git commit`
   to verify the hook wires correctly without invoking Dify (opt-out works)
 - demo fixtures live under `examples/diffs/`, each paired with a runnable
