@@ -98,10 +98,8 @@ def _resolve_ordinary_sigil(LONG_SHORT_THRESHOLD, per_file_diff):
     return symbol
 
 
-# Entry Point  #################################################################
-def main(
-    LONG_SHORT_THRESHOLD, ADD_DEL_BALANCE_TOLERANCE, per_file_diff, llm_message
-):
+# Main Entry Point  ############################################################
+def main(LONG_SHORT_THRESHOLD, per_file_diff, llm_message):
     """
     perform post-process directly on the LLM's per-file output:
 
