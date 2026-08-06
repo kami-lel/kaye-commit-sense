@@ -36,7 +36,31 @@ todo implements UTs
 
 ### Security
 
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.2.0...dev
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.2.1...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.2.1] - 2026-08-06
+
+### Added
+
+- a 🐚 sigil for script changes, extending the emoji sigil set
+
+### Fixed
+
+- the sigil reference table no longer lists a fallback row for the retired space sigil
+
+[1.2.1]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.2.0...v1.2.1
 
 
 
