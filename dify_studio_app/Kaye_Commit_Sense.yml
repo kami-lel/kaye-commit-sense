@@ -305,7 +305,10 @@ workflow:
           enabled: false
           variable_selector: []
         model:
-          completion_params: {}
+          completion_params:
+            effort: low
+            thinking: false
+            thinking_display: omitted
           mode: chat
           name: claude-sonnet-5
           provider: langgenius/anthropic/anthropic
@@ -316,7 +319,7 @@ workflow:
         - id: 441c17f9-228c-48fb-89c4-2256e27979ba
           role: user
           text: '{{#sys.query#}}'
-        selected: false
+        selected: true
         structured_output_enabled: false
         title: primary message
         type: llm
@@ -330,7 +333,7 @@ workflow:
       positionAbsolute:
         x: 1624.1896205545227
         y: 214.3679700000165
-      selected: false
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -752,14 +755,14 @@ workflow:
       positionAbsolute:
         x: 1650.977089624753
         y: 601.2574064245854
-      selected: true
+      selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 241
       zIndex: 1002
     viewport:
-      x: -972.6385028731165
-      y: -149.32409136285503
+      x: -832.6385028731165
+      y: -120.32409136285503
       zoom: 0.7491487733036917
   rag_pipeline_variables: []
