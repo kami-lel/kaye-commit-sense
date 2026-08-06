@@ -25,7 +25,6 @@
 | 🪧 | changelog changed |
 | 🪵 | development log changed |
 | 📖 | documentation changed |
-| ` ` | fallback, no rule fits or several do |
 
 These six cover the ordinary edit — the case no earlier rule claims. Color carries the balance of added against deleted lines, and shape carries the form: circle for short, square for long.
 
