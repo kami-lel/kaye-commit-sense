@@ -17,6 +17,7 @@
 | 🤖 | agent instructions changed |
 | 🧪 | tests changed |
 | 🧸 | examples or demonstration code changed |
+| 🐚 | scripts changed |
 | 🔨 | build or compilation changed |
 | 📦 | packaging metadata changed |
 | ⚙️ | configuration or settings changed |
