@@ -36,7 +36,27 @@ todo implements UTs
 
 ### Security
 
-[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.2.1...dev
+[Unreleased]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.2.2...dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+## [1.2.2] - 2026-08-07
+
+### Changed
+
+- the Dify Studio workflow export's primary message node sets an explicit low-effort, non-thinking completion default
+
+[1.2.2]: https://github.com/kami-lel/commit-sense-via-dify/compare/v1.2.1...v1.2.2
 
 
 
