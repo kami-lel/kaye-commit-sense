@@ -4,6 +4,7 @@
 Fixme hook logger messages are commented out for clarity
 Todo utilize co-authorship, leave kaye's name
 Todo implements UTs
+Fixme use new kamilog
 
 todo support chinese
 -->
