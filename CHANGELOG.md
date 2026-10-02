@@ -1,11 +1,11 @@
 # kaye-commit-sense CHANGELOG
 
 <!--
-fixme hook logger messages are commented out for clarity
-todo add an installer
-todo utilize co-authorship, leave kaye's name
+Fixme hook logger messages are commented out for clarity
+Todo utilize co-authorship, leave kaye's name
+Todo implements UTs
+
 todo support chinese
-todo implements UTs
 -->
 
 [^format]

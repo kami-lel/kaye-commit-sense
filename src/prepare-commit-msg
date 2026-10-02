@@ -13,3 +13,8 @@ set -euo pipefail
 
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 exec "${HOOK_DIR}/kaye-commit-sense-hook.sh" "$@"
+
+
+# Fixme merge 2 scripts
+
+# Todo update KCS logger name
