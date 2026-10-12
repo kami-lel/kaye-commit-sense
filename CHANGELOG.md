@@ -1,12 +1,13 @@
 # kaye-commit-sense CHANGELOG
 
 <!--
-Fixme hook logger messages are commented out for clarity
 Todo utilize co-authorship, leave kaye's name
-Todo implements UTs
 Fixme use new kamilog
+Todo support posh
 
-todo support chinese
+fixme hook logger messages are commented out for clarity
+todo todo support chinese
+todo todo implements UTs
 -->
 
 [^format]
